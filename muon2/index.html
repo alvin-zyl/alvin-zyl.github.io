@@ -1,0 +1,888 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Muon²: Boosting Muon via Adaptive Second-Moment Preconditioning</title>
+<meta name="description" content="Muon² scales Muon&#x27;s momentum by an Adam-style second moment before orthogonalization. Lower perplexity with 40% fewer Newton-Schulz iterations, and Muon&#x27;s final loss with 23% fewer GPU-hours. EMNLP 2026 Oral.">
+<meta name="author" content="Ziyue (Alvin) Liu">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Muon²: Boosting Muon via Adaptive Second-Moment Preconditioning">
+<meta property="og:description" content="Muon² scales Muon&#x27;s momentum by an Adam-style second moment before orthogonalization. Lower perplexity with 40% fewer Newton-Schulz iterations, and Muon&#x27;s final loss with 23% fewer GPU-hours. EMNLP 2026 Oral.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231b4d90'/%3E%3Ctext x='32' y='43' text-anchor='middle' font-family='Georgia,serif' font-size='30' font-weight='700' fill='%23ffffff'%3EZL%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<style>
+/* Layout: slim sticky bar; the paper's title page in one 46rem column; figures and charts widen to 64rem. */
+:root {
+  --bg: #ffffff;
+  --surface: #f5f7fa;
+  --surface-2: #eef2f7;
+  --ink: #131c28;
+  --text: #364355;
+  --muted: #647285;
+  --faint: #a3adbb;
+  --line: #e3e8ef;
+  --accent: #1b4d90;
+  --accent-ink: #143c72;
+  --accent-soft: #edf3fb;
+  --accent-line: #cbdaef;
+  --gold: #8f5d00;
+  --gold-soft: #fff5dc;
+  --gold-line: #e7b94f;
+  --shadow: 0 1px 2px rgba(19, 28, 40, .05), 0 10px 28px -14px rgba(19, 28, 40, .22);
+  /* chart roles */
+  --c1: #2a78d6;              /* ours */
+  --c1-wash: rgba(42, 120, 214, .12);
+  --c1-soft: #d9e7f8;
+  --c0: #8c96a4;              /* baseline, context */
+  --c0b: #b9c1cc;             /* second baseline */
+  --crit: #d03b3b;            /* failure */
+  --crit-soft: #fbe9e9;
+  --grid: #e9edf2;
+  --axis: #c7cfd9;
+  --hatch: rgba(42, 120, 214, .38);
+  --font-display: "Source Serif 4", "Source Serif Pro", Georgia, "Times New Roman", serif;
+  --font-body: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --measure: 46rem;
+  --wide: 64rem;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141b; --surface: #151c26; --surface-2: #1a2330;
+    --ink: #edf1f6; --text: #c3ccd8; --muted: #95a2b3; --faint: #5f6b7c; --line: #243041;
+    --accent: #8db5ee; --accent-ink: #b7d0f5; --accent-soft: #162439; --accent-line: #2d4568;
+    --gold: #f1c45e; --gold-soft: #2a2314; --gold-line: #9a7429;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 12px 30px -14px rgba(0, 0, 0, .7);
+    --c1: #3987e5; --c1-wash: rgba(57, 135, 229, .16); --c1-soft: #1b3150;
+    --c0: #6f7b8c; --c0b: #485466;
+    --crit: #e05a5a; --crit-soft: #3a1d20;
+    --grid: #1e2833; --axis: #334052;
+    --hatch: rgba(57, 135, 229, .45);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141b; --surface: #151c26; --surface-2: #1a2330;
+  --ink: #edf1f6; --text: #c3ccd8; --muted: #95a2b3; --faint: #5f6b7c; --line: #243041;
+  --accent: #8db5ee; --accent-ink: #b7d0f5; --accent-soft: #162439; --accent-line: #2d4568;
+  --gold: #f1c45e; --gold-soft: #2a2314; --gold-line: #9a7429;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 12px 30px -14px rgba(0, 0, 0, .7);
+  --c1: #3987e5; --c1-wash: rgba(57, 135, 229, .16); --c1-soft: #1b3150;
+  --c0: #6f7b8c; --c0b: #485466;
+  --crit: #e05a5a; --crit-soft: #3a1d20;
+  --grid: #1e2833; --axis: #334052;
+  --hatch: rgba(57, 135, 229, .45);
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 84px; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 16.5px;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+img { max-width: 100%; height: auto; }
+[hidden] { display: none !important; }
+a { color: var(--accent); text-decoration: none; text-underline-offset: 3px; }
+a:hover { text-decoration: underline; text-decoration-thickness: 1px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+::selection { background: var(--accent-soft); color: var(--ink); }
+p { margin: 0 0 16px; }
+h1, h2, h3 { color: var(--ink); margin: 0; }
+.nw { white-space: nowrap; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.i { width: 17px; height: 17px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ---------- top bar ---------- */
+.topbar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 40;
+  background: var(--bg);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  -webkit-backdrop-filter: saturate(1.4) blur(12px);
+  backdrop-filter: saturate(1.4) blur(12px);
+  border-bottom: 1px solid var(--line);
+}
+.topbar-in {
+  max-width: var(--wide); margin-inline: auto;
+  padding-inline: clamp(16px, 4vw, 32px);
+  height: 58px; display: flex; align-items: center; gap: 18px;
+}
+.home { display: inline-flex; align-items: center; gap: 8px; color: var(--ink); font-family: var(--font-display); font-weight: 600; font-size: 17px; white-space: nowrap; }
+.home .i { color: var(--muted); width: 16px; height: 16px; }
+.home:hover { color: var(--accent); text-decoration: none; }
+.home:hover .i { color: var(--accent); }
+.toc { margin-left: auto; display: flex; gap: 2px; }
+.toc a { padding: 6px 10px; border-radius: 6px; font-size: 14px; font-weight: 500; color: var(--muted); }
+.toc a:hover { color: var(--ink); background: var(--surface); text-decoration: none; }
+.icon-btn {
+  width: 36px; height: 36px; display: grid; place-items: center; flex: none;
+  border: 1px solid var(--line); border-radius: 8px; background: transparent; color: var(--muted); cursor: pointer; padding: 0;
+}
+.icon-btn:hover { color: var(--ink); border-color: var(--accent-line); }
+.sun { display: none; }
+:root[data-theme="dark"] .sun { display: block; }
+:root[data-theme="dark"] .moon { display: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .sun { display: block; }
+  :root:not([data-theme="light"]) .moon { display: none; }
+}
+@media (max-width: 760px) { .toc { display: none; } .icon-btn { margin-left: auto; } }
+
+/* ---------- page ---------- */
+main { padding-inline: clamp(16px, 4vw, 32px); padding-block: clamp(36px, 7vw, 64px) 88px; }
+.col { max-width: var(--measure); margin-inline: auto; }
+.wide { max-width: var(--wide); margin-inline: auto; }
+
+/* title page */
+.venue { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+.tag {
+  display: inline-block; padding: 3px 9px;
+  border: 1px solid var(--accent-line); border-radius: 6px; background: var(--accent-soft);
+  font-family: var(--font-mono); font-size: 12.5px; font-weight: 500; line-height: 1.4; color: var(--accent-ink);
+}
+.tag.oral { border-color: var(--gold-line); background: var(--gold-soft); color: var(--gold); }
+h1.title {
+  font-family: var(--font-display); font-weight: 600;
+  font-size: clamp(30px, 4.4vw, 46px); line-height: 1.13; letter-spacing: -.018em;
+  text-wrap: balance;
+}
+h1.title .name { color: var(--accent); }
+h1.title .ac { color: var(--accent); }
+.authors { margin: 22px 0 0; font-size: 16px; line-height: 1.75; color: var(--text); }
+.authors a { color: inherit; }
+.authors a:hover { color: var(--accent); }
+.authors .me { color: var(--ink); font-weight: 600; }
+.authors sup { font-size: .68em; color: var(--muted); margin-left: 1px; }
+.affils { margin: 6px 0 0; display: flex; flex-wrap: wrap; gap: 2px 18px; font-size: 14px; color: var(--muted); }
+.affils sup { font-size: .75em; margin-right: 2px; }
+.actions { margin-top: 26px; display: flex; flex-wrap: wrap; gap: 10px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px;
+  border: 1px solid var(--line); border-radius: 999px; background: var(--bg);
+  font-size: 14.5px; font-weight: 500; color: var(--ink);
+  transition: border-color .15s ease, color .15s ease, background-color .15s ease;
+}
+.btn .i { width: 16px; height: 16px; }
+.btn .t { margin-left: 2px; font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; }
+.btn:hover .t { color: inherit; }
+.btn:hover { border-color: var(--accent-line); color: var(--accent); text-decoration: none; }
+.btn.primary { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.btn.primary:hover { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+
+.tldr { margin-top: 44px; }
+.label {
+  font-family: var(--font-mono); font-size: 12px; font-weight: 500;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+}
+.tldr p {
+  margin: 10px 0 0; font-family: var(--font-display); font-size: clamp(20px, 2.3vw, 24px);
+  line-height: 1.45; letter-spacing: -.008em; color: var(--ink); text-wrap: pretty;
+}
+
+.stats {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 26px 32px; margin-top: 40px; padding-top: 28px; border-top: 1px solid var(--line);
+}
+.stats.four { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 26px 24px; }
+@media (max-width: 700px) { .stats.four { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.stat .v { font-size: 34px; font-weight: 600; line-height: 1.05; letter-spacing: -.02em; color: var(--ink); }
+.stat .v small { font-size: 18px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
+.stat .l { margin-top: 8px; font-size: 14px; line-height: 1.5; color: var(--muted); }
+
+/* sections */
+.sec { margin-top: clamp(64px, 9vw, 96px); }
+.sec > .col > h2, .sec h2 {
+  font-family: var(--font-display); font-weight: 600; font-size: clamp(26px, 3vw, 32px);
+  line-height: 1.2; letter-spacing: -.012em; text-wrap: balance; margin-bottom: 18px;
+}
+.sec h3 { font-size: 19px; font-weight: 600; line-height: 1.35; margin: 44px 0 10px; }
+.sec h3 + p { margin-top: 0; }
+.abstract p { color: var(--text); }
+.note { font-size: 14.5px; color: var(--muted); }
+em.term { font-style: normal; color: var(--ink); font-weight: 500; }
+
+/* math */
+.eq {
+  margin: 22px 0; padding: 16px 20px; border-radius: 12px; background: var(--surface);
+  font-family: var(--font-display); font-size: 21px; color: var(--ink); text-align: center;
+  overflow-x: auto;
+}
+.m { font-family: var(--font-display); font-style: italic; white-space: nowrap; }
+.m .up { font-style: normal; font-family: var(--font-body); font-size: .8em; }
+.eq .lines { display: inline-grid; gap: 6px; text-align: left; }
+.eq .lines > span { white-space: normal; }
+sup, sub { line-height: 0; }
+.m b { font-style: normal; font-weight: 700; }
+.m sub, .m sup { font-size: .7em; font-style: normal; }
+.eq .m { font-size: inherit; }
+
+/* figure shell */
+.fig { margin: 30px auto 0; }
+.frame { border: 1px solid var(--line); border-radius: 16px; background: var(--bg); padding: clamp(16px, 3vw, 28px); }
+.fig figcaption, .fig .cap { margin: 12px auto 0; max-width: var(--measure); font-size: 14px; line-height: 1.6; color: var(--muted); }
+.fig figcaption b { color: var(--text); font-weight: 600; }
+.chart-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 18px; margin-bottom: 16px; }
+.chart-title { font-size: 15px; font-weight: 600; color: var(--ink); line-height: 1.4; }
+.chart-sub { font-size: 13px; color: var(--muted); }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.k-line { width: 16px; height: 0; border-top: 2px solid; border-radius: 2px; }
+.k-box { width: 10px; height: 10px; border-radius: 3px; }
+.k-dot { width: 9px; height: 9px; border-radius: 50%; }
+.k-ring { width: 9px; height: 9px; border-radius: 50%; border: 2px solid; background: var(--bg); }
+.c1 { color: var(--c1); } .c0 { color: var(--c0); } .c0b { color: var(--c0b); }
+.bg-c1 { background: var(--c1); } .bg-c0 { background: var(--c0); } .bg-c0b { background: var(--c0b); }
+.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; margin-top: 30px; }
+.two > .fig { margin: 0; min-width: 0; display: flex; flex-direction: column; }
+.two > .fig > .frame { flex: 1; }
+@media (max-width: 820px) { .two { grid-template-columns: minmax(0, 1fr); } }
+.k-hatch { width: 10px; height: 10px; border-radius: 3px; background: repeating-linear-gradient(135deg, var(--c0) 0 1.5px, transparent 1.5px 3.5px); box-shadow: inset 0 0 0 1px var(--c0); }
+.k-band { width: 16px; height: 6px; border-radius: 3px; }
+.k-dash { width: 16px; height: 0; border-top: 2px dashed; }
+.data-view { margin-top: 14px; }
+.data-view summary { width: fit-content; max-width: 100%; font-size: 13px; color: var(--muted); cursor: pointer; list-style: none; }
+.data-view summary::-webkit-details-marker { display: none; }
+.data-view summary::before { content: "+ "; font-family: var(--font-mono); }
+.data-view[open] summary::before { content: "\2212  "; }
+.data-view summary:hover { color: var(--ink); }
+.data-view .tbl { margin-top: 10px; }
+
+/* tables */
+.tbl { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table.t { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+table.t th, table.t td { padding: 9px 12px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--line); }
+table.t th:first-child, table.t td:first-child { text-align: left; }
+table.t thead th { font-size: 12.5px; font-weight: 600; color: var(--muted); border-bottom-color: var(--axis); vertical-align: bottom; }
+table.t tbody th { font-weight: 500; color: var(--ink); }
+table.t td { color: var(--text); }
+table.t .best { color: var(--ink); font-weight: 600; }
+table.t tr.ours td, table.t tr.ours th { background: var(--accent-soft); }
+table.t tr.ours th { color: var(--accent-ink); font-weight: 600; }
+table.t .d { color: var(--muted); font-size: 12px; margin-left: 4px; font-weight: 400; }
+table.t tr.grp td, table.t tr.grp th { border-top: 1px solid var(--axis); }
+table.t .sub { display: block; font-size: 11.5px; font-weight: 400; color: var(--faint); }
+.yes, .no { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; font-size: 13px; font-weight: 700; }
+.yes { background: var(--c1-soft); color: var(--c1); }
+.no { background: var(--surface-2); color: var(--faint); }
+
+/* HTML bar charts */
+.hb { display: grid; gap: 10px; }
+.hb-row { display: grid; grid-template-columns: minmax(92px, 24%) minmax(0, 1fr); align-items: center; gap: 14px; }
+.hb-lab { font-size: 13.5px; color: var(--text); text-align: right; line-height: 1.3; }
+.hb-row.hl .hb-lab { color: var(--ink); font-weight: 600; }
+.hb-track { position: relative; height: 22px; margin-right: var(--room, 64px); }
+.hb-bar { position: absolute; left: 0; top: 2px; height: 18px; width: var(--w); border-radius: 0 4px 4px 0; background: var(--c0); outline: none; transition: filter .15s ease; }
+.hb-row.hl .hb-bar { background: var(--c1); }
+.hb-bar:hover, .hb-bar:focus-visible { filter: brightness(1.1); }
+.hb-val { position: absolute; top: 50%; left: calc(var(--w) + 4px); transform: translateY(-50%); padding: 0 4px; border-radius: 4px; background: var(--bg); font-size: 12.5px; font-weight: 600; color: var(--ink); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.hb-val small { font-weight: 500; color: var(--muted); margin-left: 4px; }
+.hb-ref { position: absolute; top: -6px; bottom: -6px; left: var(--x); border-left: 1.5px dashed var(--muted); }
+.hb-axis { display: grid; grid-template-columns: minmax(92px, 24%) minmax(0, 1fr); gap: 14px; margin-top: 4px; }
+.hb-ticks { position: relative; height: 18px; margin-right: var(--room, 64px); border-top: 1px solid var(--axis); font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.hb-reflab { position: absolute; top: -18px; left: var(--x); transform: translateX(-50%); font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+.hb-ticks span { position: absolute; top: 3px; transform: translateX(-50%); }
+
+/* grouped columns */
+.cols { display: grid; grid-template-columns: 38px minmax(0, 1fr); gap: 0 8px; }
+.cols-y { position: relative; }
+.cols-y span { position: absolute; right: 0; transform: translateY(50%); font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.cols-plot { position: relative; height: 230px; border-bottom: 1px solid var(--axis); }
+.cols-plot .gl { position: absolute; left: 0; right: 0; border-top: 1px solid var(--grid); }
+.cols-groups { position: absolute; inset: 0; display: flex; }
+.cg { flex: 1; display: flex; align-items: flex-end; justify-content: center; gap: 2px; }
+.cb { position: relative; width: min(20px, 34%); border-radius: 4px 4px 0 0; background: var(--c0); outline: none; transition: filter .15s ease; }
+.cb.hl { background: var(--c1); }
+.cb:hover, .cb:focus-visible { filter: brightness(1.12); }
+.cb-v { position: absolute; bottom: calc(100% + 4px); left: 50%; transform: translateX(-50%); font-size: 11.5px; font-weight: 600; color: var(--ink); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.cols-plot .ref { position: absolute; left: 0; right: 0; z-index: 1; border-top: 1.5px dashed var(--muted); pointer-events: none; }
+.cols-plot .ref-lab { position: absolute; left: 0; bottom: 100%; margin-bottom: 3px; padding: 0 4px 0 0; background: var(--bg); font-size: 11.5px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.cols-plot .ref-lab b { color: var(--text); font-weight: 600; }
+.cols-x { grid-column: 2; display: flex; }
+.cols-x span { flex: 1; text-align: center; font-size: 12px; color: var(--muted); padding-top: 6px; }
+.cols-xlab { grid-column: 2; text-align: center; font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+/* dumbbell */
+.db { display: grid; gap: 4px; }
+.db-row { display: grid; grid-template-columns: minmax(88px, 22%) minmax(0, 1fr); align-items: center; gap: 14px; height: 44px; }
+.db-lab { text-align: right; font-size: 13.5px; color: var(--text); }
+.db-row.hl .db-lab { color: var(--ink); font-weight: 600; }
+.db-track { position: relative; height: 100%; margin-inline: 46px; }
+.db-track .gl { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--grid); }
+.db-link { position: absolute; top: 50%; height: 2px; margin-top: -1px; background: var(--c0); border-radius: 2px; }
+.db-row.hl .db-link { background: var(--c1); }
+.db-pt { position: absolute; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; border: 2px solid var(--c0); background: var(--bg); box-shadow: 0 0 0 2px var(--bg); outline: none; }
+.db-pt.fill { background: var(--c0); }
+.db-row.hl .db-pt { border-color: var(--c1); }
+.db-row.hl .db-pt.fill { background: var(--c1); }
+.db-pt::after { content: ""; position: absolute; inset: -8px; }
+.db-v { position: absolute; top: 50%; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.db-v.r { transform: translate(12px, -50%); }
+.db-v.l { transform: translate(calc(-100% - 12px), -50%); }
+.db-row.hl .db-v { color: var(--ink); font-weight: 600; }
+.db-axis { display: grid; grid-template-columns: minmax(88px, 22%) minmax(0, 1fr); gap: 14px; }
+.db-grp { margin: 10px 0 -2px; font-size: 12.5px; font-weight: 600; color: var(--muted); }
+.db-grp:first-child { margin-top: 0; }
+.db-axis .hb-ticks { margin-inline: 46px; }
+@media (max-width: 600px) { .db-track, .db-axis .hb-ticks { margin-inline: 38px; } .db-v { font-size: 11px; } }
+
+/* SVG charts (drawn by script at the container's size) */
+.plot { position: relative; width: 100%; }
+.plot svg { display: block; width: 100%; overflow: visible; }
+.plot text { font-family: var(--font-body); font-size: 12px; fill: var(--muted); }
+.plot text.lab { fill: var(--text); font-size: 12.5px; font-weight: 500; }
+.plot text.val { fill: var(--ink); font-weight: 600; }
+.plot .gl { stroke: var(--grid); stroke-width: 1; shape-rendering: crispEdges; }
+.plot .ax { stroke: var(--axis); stroke-width: 1; shape-rendering: crispEdges; }
+.plot .ln { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.plot .s-c1 { stroke: var(--c1); } .plot .s-c0 { stroke: var(--c0); } .plot .s-c0b { stroke: var(--c0b); }
+.plot .f-c1 { fill: var(--c1); } .plot .f-c0 { fill: var(--c0); } .plot .f-c0b { fill: var(--c0b); }
+.plot .wash { fill: var(--c1-wash); }
+.plot .wash0 { fill: var(--c0); fill-opacity: .12; }
+.plot .dot { stroke: var(--bg); stroke-width: 2; }
+.plot .xh { stroke: var(--muted); stroke-width: 1; shape-rendering: crispEdges; }
+.plot .zone { fill: var(--surface); }
+.plot .zone.dead { fill: var(--crit-soft); }
+.plot .zone.none { fill: transparent; }
+.plot .zline { stroke: var(--axis); stroke-width: 1; stroke-dasharray: 3 3; }
+.plot text.zlab { font-size: 11.5px; letter-spacing: .02em; }
+.plot text.zlab.dead { fill: var(--crit); }
+.plot text.ylab { font-size: 11.5px; }
+.plot .fdot { fill: var(--crit); stroke: var(--bg); stroke-width: 1; }
+.plot .strip { fill: var(--surface); }
+.plot text.crit { fill: var(--crit); font-weight: 500; }
+.plot .under { fill: none; stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; stroke-opacity: .45; }
+.plot .leader { stroke: var(--axis); stroke-width: 1; }
+.plot .hit { fill: transparent; cursor: crosshair; }
+.plot .bub { stroke: var(--bg); stroke-width: 2; }
+.seg { display: inline-flex; flex-wrap: wrap; max-width: 100%; padding: 3px; gap: 2px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+@media (max-width: 560px) {
+  .seg.many { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
+  .seg.many button { white-space: normal; line-height: 1.3; }
+}
+.seg button {
+  border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 13px; font-weight: 500;
+  padding: 5px 12px; border-radius: 7px; cursor: pointer; white-space: nowrap;
+}
+.seg button:hover { color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--bg); color: var(--ink); box-shadow: 0 1px 2px rgba(0, 0, 0, .08); }
+
+/* tooltip */
+.tip {
+  position: fixed; z-index: 60; pointer-events: none; min-width: 120px; max-width: 260px;
+  padding: 8px 10px; border-radius: 10px; background: var(--ink); color: var(--bg);
+  box-shadow: var(--shadow); font-size: 12.5px; line-height: 1.45;
+}
+.tip-h { font-size: 11.5px; opacity: .72; margin-bottom: 3px; }
+.tip-r { display: flex; align-items: baseline; gap: 8px; }
+.tip-r strong { font-variant-numeric: tabular-nums; font-weight: 600; }
+.tip-r span { opacity: .8; }
+.tip-k { width: 12px; height: 0; border-top: 2px solid; flex: none; align-self: center; }
+
+/* paper figures keep a white ground in both themes */
+.frame.paper { background: #ffffff; }
+.frame.nopad { padding: 0; overflow: hidden; }
+.frame.paper img { display: block; margin-inline: auto; }
+
+/* BibTeX */
+.bib { border-radius: 14px; background: var(--surface); border: 1px solid var(--line); overflow: hidden; }
+.bib-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 10px 8px 22px; border-bottom: 1px solid var(--line); }
+.bib pre {
+  margin: 0; padding: 18px 22px 20px;
+  font-family: var(--font-mono); font-size: 13px; line-height: 1.65; color: var(--text); overflow-x: auto;
+}
+.copy {
+  height: 32px; padding: 0 12px; display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--muted); font: inherit; font-size: 13px; cursor: pointer;
+}
+.copy:hover { color: var(--ink); border-color: var(--accent-line); }
+.copy .i { width: 14px; height: 14px; }
+
+/* footer */
+.foot { border-top: 1px solid var(--line); }
+.foot-in {
+  max-width: var(--wide); margin-inline: auto; padding: 26px clamp(16px, 4vw, 32px) 36px;
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px 28px; font-size: 14px; color: var(--muted);
+}
+.foot-in nav { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+
+@media (max-width: 600px) {
+  body { font-size: 16px; }
+  .stat .v { font-size: 30px; }
+  .hb-row, .hb-axis { grid-template-columns: minmax(76px, 30%) minmax(0, 1fr); gap: 10px; }
+  .db-row, .db-axis { grid-template-columns: minmax(70px, 26%) minmax(0, 1fr); gap: 10px; }
+  .eq { font-size: 18px; padding: 14px; }
+  .cols-plot { height: 200px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+
+.algo { margin: 22px 0 6px; padding: 14px 8px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); overflow-x: auto; }
+.al { display: grid; grid-template-columns: 28px minmax(max-content, 1fr) auto; align-items: center; gap: 12px; padding: 7px 12px; border-radius: 9px; font-size: 17px; color: var(--ink); }
+.al .no { font-family: var(--font-mono); font-size: 12px; color: var(--faint); text-align: right; background: none; width: auto; height: auto; }
+.al .m { font-size: 17.5px; }
+.al .c { font-family: var(--font-body); font-size: 13px; color: var(--muted); white-space: nowrap; }
+.al.add { background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent-line); }
+.al.add .c { color: var(--accent-ink); font-weight: 600; }
+.al.ind { padding-left: 34px; }
+.pm { display: inline-block; }
+table.ppl th.grp { text-align: center; font-weight: 600; color: var(--ink); border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+table.ppl .gs { border-left: 1px solid var(--line); }
+table.ppl td, table.ppl thead tr + tr th { padding-inline: 10px; }
+table.ppl .na { color: var(--faint); }
+</style>
+<script>(function () { try { var t = localStorage.getItem("zl-theme"); if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t); } catch (e) {} })();</script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 16.5h6"/></symbol>
+  <symbol id="i-ext" viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8"/></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24"><path d="m8.5 8-4.5 4 4.5 4"/><path d="m15.5 8 4.5 4-4.5 4"/><path d="m13.5 5.5-3 13"/></symbol>
+  <symbol id="i-quote" viewBox="0 0 24 24"><path d="M9 7H5v6h4v-6zM19 7h-4v6h4V7z"/><path d="M9 13c0 2.5-1.2 4-3.5 4.5M19 13c0 2.5-1.2 4-3.5 4.5"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10.5 9.4 4.2 2.6-4.2 2.6z"/></symbol>
+  <symbol id="i-slides" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M12 17v4M8 21h8"/></symbol>
+  <symbol id="i-poster" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8.5 7.5h7M8.5 11h7M8.5 14.5h4"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M15 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h3"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6 6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.2A8.2 8.2 0 1 1 9.8 4a6.6 6.6 0 0 0 10.2 10.2z"/></symbol>
+</svg>
+<header class="topbar">
+  <div class="topbar-in">
+    <a class="home" href="../"><svg class="i" aria-hidden="true"><use href="#i-back"/></svg>Ziyue (Alvin) Liu</a>
+    <nav class="toc" aria-label="On this page"><a href="#abstract">Abstract</a><a href="#method">Method</a><a href="#results">Results</a><a href="#citation">Citation</a></nav>
+    <button class="icon-btn" id="theme-toggle" type="button" aria-label="Toggle dark mode">
+      <svg class="i moon" aria-hidden="true"><use href="#i-moon"/></svg><svg class="i sun" aria-hidden="true"><use href="#i-sun"/></svg>
+    </button>
+  </div>
+</header>
+<main id="main">
+
+<section class="col" aria-labelledby="title">
+  <div class="venue"><span class="tag">EMNLP 2026</span><span class="tag oral">Oral</span></div>
+  <h1 class="title" id="title"><span class="name">Muon&sup2;</span>: Boosting Muon via Adaptive Second-Moment Preconditioning</h1>
+  <p class="authors">
+    <a class="me" href="../">Ziyue Liu</a><sup>1</sup>, Ruijie Zhang<sup>1</sup>, Zhengyang Wang<sup>1</sup>, Yequan Zhao<sup>1</sup>, Yupeng Su<sup>1</sup>, Zi Yang<sup>2</sup>, <a href="https://web.ece.ucsb.edu/~zhengzhang/" target="_blank" rel="noopener">Zheng Zhang</a><sup>1</sup>
+  </p>
+  <p class="affils"><span><sup>1</sup>University of California, Santa Barbara</span><span><sup>2</sup>University at Albany, SUNY</span></p>
+  <div class="actions">
+    <a class="btn primary" href="https://arxiv.org/abs/2604.09967" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-file"/></svg>Paper</a>
+    <a class="btn" href="#citation"><svg class="i" aria-hidden="true"><use href="#i-quote"/></svg>BibTeX</a>
+  </div>
+  <div class="tldr">
+    <div class="label">In short</div>
+    <p>Muon&sup2; divides Muon's momentum by an Adam-style second moment before orthogonalizing it. That one change gives lower perplexity with 40% fewer Newton&ndash;Schulz iterations, and reaches Muon's final loss with 23% fewer GPU-hours.</p>
+  </div>
+</section>
+
+<div class="sec" style="margin-top:40px"><figure class="fig wide"><div class="frame"><div class="chart-head"><div><div class="chart-title">GPU-hours to reach a loss of 2.36 on <span class="nw">LLaMA-1B</span></div><div class="chart-sub">2.36 is where Muon with 5 Newton&ndash;Schulz steps ends; fewer is better</div></div></div><div class="hbw" style="--room:84px"><div class="hb"><div class="hb-row"><div class="hb-lab">Muon, 5 steps</div><div class="hb-track" style="--w:86.75%"><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;Muon, 5 steps&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;1,041&quot;, &quot;l&quot;: &quot;GPU-hours&quot;}, {&quot;v&quot;: &quot;4,796&quot;, &quot;l&quot;: &quot;training steps&quot;}]}"></div><div class="hb-val">1,041</div></div></div><div class="hb-row hl"><div class="hb-lab">Muon², 3 steps</div><div class="hb-track" style="--w:68.00%"><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;Muon², 3 steps&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;816&quot;, &quot;l&quot;: &quot;GPU-hours&quot;}, {&quot;v&quot;: &quot;3,862&quot;, &quot;l&quot;: &quot;training steps&quot;}]}"></div><div class="hb-val">816<small>&minus;22%</small></div></div></div><div class="hb-row hl"><div class="hb-lab">Muon², 5 steps</div><div class="hb-track" style="--w:66.42%"><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;Muon², 5 steps&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;797&quot;, &quot;l&quot;: &quot;GPU-hours&quot;}, {&quot;v&quot;: &quot;3,632&quot;, &quot;l&quot;: &quot;training steps&quot;}]}"></div><div class="hb-val">797<small>&minus;23%</small></div></div></div></div><div class="hb-axis"><div></div><div class="hb-ticks"><span style="left:0.00%">0</span><span style="left:25.00%">300</span><span style="left:50.00%">600</span><span style="left:75.00%">900</span><span style="left:100.00%">1,200</span></div></div></div><details class="data-view"><summary>Show the numbers</summary><div class="tbl"><table class="t"><thead><tr><th scope="col">Optimizer</th><th scope="col">GPU-hours</th><th scope="col">Training steps</th></tr></thead><tbody><tr><th scope="row">Muon, 5 steps</th><td>1,041</td><td>4,796</td></tr><tr><th scope="row">Muon², 3 steps</th><td>816</td><td>3,862</td></tr><tr><th scope="row">Muon², 5 steps</th><td>797</td><td>3,632</td></tr></tbody></table></div></details></div></figure></div>
+
+<section class="col">
+  <div class="stats">
+    <div class="stat"><div class="v">40%</div><div class="l">fewer Newton&ndash;Schulz iterations: with 3, Muon&sup2; beats Muon with 5 in every setting tested</div></div>
+    <div class="stat"><div class="v">23%</div><div class="l">fewer GPU-hours to reach Muon's final loss on LLaMA-1B</div></div>
+    <div class="stat"><div class="v">13B</div><div class="l">largest model, across GPT, LLaMA and mixture-of-experts pre-training</div></div>
+  </div>
+</section>
+
+<section class="sec col abstract" id="abstract" aria-labelledby="abstract-h">
+  <h2 id="abstract-h">Abstract</h2>
+  <p>Muon has emerged as a promising optimizer for large-scale foundation model pre-training by exploiting the matrix structure of neural network updates through iterative orthogonalization. However, the orthogonalization quality of Muon hinges on the number of Newton&ndash;Schulz (NS) iterations performed, which poses efficiency challenges due to its non-trivial computation and communication cost. We propose Muon&sup2;, an extension of Muon, to improve both quality and efficiency by applying Adam-style adaptive second-moment preconditioning before orthogonalization. Our key insight is that the core challenge of polar approximation in Muon lies in the ill-conditioned momentum matrix, of which the spectrum is substantially improved by Muon&sup2;, leading to faster convergence toward a practically sufficient orthogonalization. We further characterize the practical orthogonalization quality via directional alignment, under which Muon&sup2; demonstrates dramatic improvement over Muon at each polar step. Across GPT, LLaMA, and Mixture-of-Experts pre-training experiments up to 13B parameters, Muon&sup2; (and its memory-efficient variant Muon&sup2;-F that preserves most of its benefits) consistently outperforms Muon and its variants while reducing NS iterations by 40%, and saves up to 1/4 training time over Muon when achieving the same loss.</p>
+</section>
+
+<section class="sec" id="method" aria-labelledby="method-h">
+  <div class="col">
+    <h2 id="method-h">One extra step before Newton&ndash;Schulz</h2>
+    <p>Muon replaces the momentum with an approximately orthogonal matrix computed by a few Newton&ndash;Schulz (NS) iterations. Each iteration adds matrix multiplications on the full matrix, which distributed training keeps sharded, so an implementation either duplicates the work on every device or communicates in every iteration. Cutting iterations hurts Muon's orthogonalization; Muon&sup2; needs fewer because it keeps an Adam-style second moment and scales the momentum element-wise before orthogonalizing it. Everything else is Muon.</p>
+    <div class="algo" role="figure" aria-label="The Muon squared update rule">
+      <div class="al"><span class="no">1</span><span class="m"><b>G</b><sub>t</sub> = &nabla;<sub><b>W</b></sub> &#8466;(<b>W</b><sub>t</sub>)</span><span class="c">gradient</span></div>
+      <div class="al"><span class="no">2</span><span class="m"><b>M</b><sub>t</sub> = &beta;<sub>1</sub><b>M</b><sub>t&minus;1</sub> + (1 &minus; &beta;<sub>1</sub>) <b>G</b><sub>t</sub></span><span class="c">momentum</span></div>
+      <div class="al add"><span class="no">3</span><span class="m"><b>V</b><sub>t</sub> = &beta;<sub>2</sub><b>V</b><sub>t&minus;1</sub> + (1 &minus; &beta;<sub>2</sub>) <b>G</b><sub>t</sub> &#8857; <b>G</b><sub>t</sub></span><span class="c">added: second moment</span></div>
+      <div class="al add"><span class="no">4</span><span class="m"><b>M&#771;</b><sub>t</sub> = <b>M</b><sub>t</sub> &#8856; (&radic;<b>V</b><sub>t</sub> + &epsilon;)</span><span class="c">added: precondition</span></div>
+      <div class="al"><span class="no">5</span><span class="m"><b>O</b><sub>t</sub> = NewtonSchulz(<b>M&#771;</b><sub>t</sub>, K)</span><span class="c">orthogonalize</span></div>
+      <div class="al"><span class="no">6</span><span class="m"><b>W</b><sub>t+1</sub> = <b>W</b><sub>t</sub> &minus; &eta; &radic;(m/n) <b>O</b><sub>t</sub></span><span class="c">update</span></div>
+    </div>
+    <h3>Why it helps: a better-conditioned input</h3>
+    <p>NS pushes every singular value of its input toward 1, and tiny singular values need many iterations to get there. With Muon's usual five steps, values below about 10<sup>&minus;3</sup> never reach the target range. Early in training, a large share of Muon's normalized momentum sits there. Second-moment scaling moves the whole spectrum about ten times higher and tightens it.</p>
+  </div>
+  <figure class="fig wide" data-chart="hist"><div class="frame"><div class="chart-head"><div><div class="chart-title">Singular values entering Newton&ndash;Schulz</div><div class="chart-sub">LLaMA-60M, normalized momentum. Values in the dead zone are still far from 1 after five steps.</div></div><div class="seg" role="group" aria-label="Training stage"><button type="button" data-key="early" aria-pressed="true">Early training</button><button type="button" data-key="mid" aria-pressed="false">Mid training</button></div></div><div style="margin:-4px 0 14px"><div class="legend"><span><i class="k-line" style="border-color:var(--c1)"></i>Muon&sup2;</span><span><i class="k-line" style="border-color:var(--c0)"></i>Muon</span></div></div><div class="plot" role="img" aria-label="Histogram of the singular values that enter the Newton-Schulz iteration, for Muon and Muon squared. Muon squared&#x27;s distribution sits about ten times further right and has less mass in the dead zone."></div></div><figcaption><span data-caption="early">Early in training, Muon's input spreads from 10<sup>&minus;4</sup> to 1 and centers near 10<sup>&minus;3</sup>, with almost half of it in the dead zone. Muon&sup2;'s input centers near 10<sup>&minus;2</sup>, ten times higher, and mostly falls in the transition zone.</span><span data-caption="mid" hidden>Both distributions move right as training goes on, and Muon&sup2; keeps a much smaller share in the dead zone.</span></figcaption><script type="application/json">{"aria":"Histogram of the singular values that enter the Newton-Schulz iteration, for Muon and Muon squared. Muon squared's distribution sits about ten times further right and has less mass in the dead zone.","initial":"early","names":["Muon\u00b2","Muon"],"zones":[{"lo":-4,"hi":-3,"name":"dead zone","short":"dead","cls":"dead"},{"lo":-3,"hi":-0.6989700043360187,"name":"transition zone","short":"transition","cls":"none"},{"lo":-0.6989700043360187,"hi":0,"name":"convergent","short":"conv."}],"ylabel":"density","sets":{"early":{"a":[[-4.0,-3.9333,0.00384],[-3.9333,-3.8666,0.00432],[-3.8666,-3.8,0.00485],[-3.8,-3.7333,0.00562],[-3.7333,-3.6666,0.00638],[-3.6666,-3.5999,0.00691],[-3.5999,-3.5333,0.00746],[-3.5333,-3.4667,0.00886],[-3.4667,-3.4,0.00893],[-3.4,-3.3333,0.00949],[-3.3333,-3.2667,0.01064],[-3.2667,-3.2,0.01067],[-3.2,-3.1333,0.01207],[-3.1333,-3.0667,0.01283],[-3.0667,-3.0,0.01412],[-3.0,-2.9333,0.01528],[-2.9333,-2.8666,0.01691],[-2.8666,-2.8,0.01842],[-2.8,-2.7333,0.02009],[-2.7333,-2.6666,0.02176],[-2.6666,-2.5999,0.02529],[-2.5999,-2.5333,0.02661],[-2.5333,-2.4667,0.03013],[-2.4667,-2.4,0.03299],[-2.4,-2.3334,0.03665],[-2.3334,-2.2667,0.03927],[-2.2667,-2.2,0.04199],[-2.2,-2.1333,0.04482],[-2.1333,-2.0667,0.04572],[-2.0667,-2.0,0.04646],[-2.0,-1.9333,0.04604],[-1.9333,-1.8666,0.04544],[-1.8666,-1.8,0.04286],[-1.8,-1.7333,0.03965],[-1.7333,-1.6666,0.0354],[-1.6666,-1.6,0.0316],[-1.6,-1.5333,0.02703],[-1.5333,-1.4667,0.0226],[-1.4667,-1.4,0.01848],[-1.4,-1.3334,0.01482],[-1.3334,-1.2667,0.01175],[-1.2667,-1.2,0.00956],[-1.2,-1.1333,0.0075],[-1.1333,-1.0667,0.00631],[-1.0667,-1.0,0.0052],[-1.0,-0.9333,0.00478],[-0.9333,-0.8667,0.00391],[-0.8667,-0.8,0.00345],[-0.8,-0.7333,0.00244],[-0.7333,-0.6666,0.00188],[-0.6666,-0.6,0.0016],[-0.6,-0.5333,0.00077],[-0.5333,-0.4667,0.00035],[-0.4667,-0.4,0.00042],[-0.4,-0.3334,0.00059],[-0.3334,-0.2667,0.00077],[-0.2667,-0.2,0.00063],[-0.2,-0.1334,0.0007],[-0.1334,-0.0667,0.00024]],"b":[[-4.0,-3.9333,0.01032],[-3.9333,-3.8666,0.0105],[-3.8666,-3.8,0.01273],[-3.8,-3.7333,0.0143],[-3.7333,-3.6666,0.01636],[-3.6666,-3.5999,0.0189],[-3.5999,-3.5333,0.02141],[-3.5333,-3.4667,0.02406],[-3.4667,-3.4,0.02577],[-3.4,-3.3333,0.02835],[-3.3333,-3.2667,0.0302],[-3.2667,-3.2,0.03188],[-3.2,-3.1333,0.03261],[-3.1333,-3.0667,0.03292],[-3.0667,-3.0,0.03362],[-3.0,-2.9333,0.03345],[-2.9333,-2.8666,0.03369],[-2.8666,-2.8,0.03341],[-2.8,-2.7333,0.03376],[-2.7333,-2.6666,0.03355],[-2.6666,-2.5999,0.03306],[-2.5999,-2.5333,0.0323],[-2.5333,-2.4667,0.03188],[-2.4667,-2.4,0.03097],[-2.4,-2.3334,0.02982],[-2.3334,-2.2667,0.02919],[-2.2667,-2.2,0.02713],[-2.2,-2.1333,0.02539],[-2.1333,-2.0667,0.02344],[-2.0667,-2.0,0.02155],[-2.0,-1.9333,0.01932],[-1.9333,-1.8666,0.01737],[-1.8666,-1.8,0.0157],[-1.8,-1.7333,0.01318],[-1.7333,-1.6666,0.0121],[-1.6666,-1.6,0.00983],[-1.6,-1.5333,0.00868],[-1.5333,-1.4667,0.00673],[-1.4667,-1.4,0.00568],[-1.4,-1.3334,0.0046],[-1.3334,-1.2667,0.00384],[-1.2667,-1.2,0.00352],[-1.2,-1.1333,0.00248],[-1.1333,-1.0667,0.00237],[-1.0667,-1.0,0.00188],[-1.0,-0.9333,0.00167],[-0.9333,-0.8667,0.00129],[-0.8667,-0.8,0.00143],[-0.8,-0.7333,0.00112],[-0.7333,-0.6666,0.00059],[-0.6666,-0.6,0.00066],[-0.6,-0.5333,0.0007],[-0.5333,-0.4667,0.00035],[-0.4667,-0.4,0.00038],[-0.4,-0.3334,0.00014],[-0.3334,-0.2667,7e-05],[-0.2667,-0.2,0.00021],[-0.2,-0.1334,0.00017],[-0.1334,-0.0667,0.00031]],"ymax":0.05,"ticks":[0,0.01,0.02,0.03,0.04,0.05]},"mid":{"a":[[-4.0,-3.9333,0.00063],[-3.9333,-3.8666,0.00098],[-3.8666,-3.8,0.00108],[-3.8,-3.7333,0.00105],[-3.7333,-3.6666,0.00126],[-3.6666,-3.5999,0.0014],[-3.5999,-3.5333,0.00185],[-3.5333,-3.4667,0.00195],[-3.4667,-3.4,0.00227],[-3.4,-3.3333,0.00251],[-3.3333,-3.2667,0.00303],[-3.2667,-3.2,0.00345],[-3.2,-3.1333,0.00401],[-3.1333,-3.0667,0.00422],[-3.0667,-3.0,0.00492],[-3.0,-2.9333,0.00572],[-2.9333,-2.8666,0.00638],[-2.8666,-2.8,0.00736],[-2.8,-2.7333,0.00834],[-2.7333,-2.6666,0.00886],[-2.6666,-2.5999,0.01029],[-2.5999,-2.5333,0.01113],[-2.5333,-2.4667,0.01266],[-2.4667,-2.4,0.01374],[-2.4,-2.3334,0.01503],[-2.3334,-2.2667,0.01688],[-2.2667,-2.2,0.01862],[-2.2,-2.1333,0.02131],[-2.1333,-2.0667,0.02469],[-2.0667,-2.0,0.02856],[-2.0,-1.9333,0.03589],[-1.9333,-1.8666,0.04447],[-1.8666,-1.8,0.05078],[-1.8,-1.7333,0.05622],[-1.7333,-1.6666,0.06062],[-1.6666,-1.6,0.06372],[-1.6,-1.5333,0.06512],[-1.5333,-1.4667,0.064],[-1.4667,-1.4,0.06201],[-1.4,-1.3334,0.05731],[-1.3334,-1.2667,0.05096],[-1.2667,-1.2,0.04224],[-1.2,-1.1333,0.03129],[-1.1333,-1.0667,0.02026],[-1.0667,-1.0,0.01399],[-1.0,-0.9333,0.01074],[-0.9333,-0.8667,0.00854],[-0.8667,-0.8,0.00548],[-0.8,-0.7333,0.00272],[-0.7333,-0.6666,0.00136],[-0.6666,-0.6,0.0008],[-0.6,-0.5333,0.00066],[-0.5333,-0.4667,0.00091],[-0.4667,-0.4,0.00038],[-0.4,-0.3334,0.00031],[-0.3334,-0.2,0.00014],[-0.2,-0.0667,0.0]],"b":[[-4.0,-3.9333,0.00537],[-3.9333,-3.8666,0.00548],[-3.8666,-3.8,0.0059],[-3.8,-3.7333,0.00642],[-3.7333,-3.6666,0.00694],[-3.6666,-3.5999,0.00736],[-3.5999,-3.5333,0.00806],[-3.5333,-3.4667,0.00875],[-3.4667,-3.4,0.00886],[-3.4,-3.3333,0.00973],[-3.3333,-3.2667,0.01005],[-3.2667,-3.2,0.01064],[-3.2,-3.1333,0.01081],[-3.1333,-3.0667,0.01147],[-3.0667,-3.0,0.01203],[-3.0,-2.9333,0.0121],[-2.9333,-2.8666,0.01224],[-2.8666,-2.8,0.0129],[-2.8,-2.7333,0.01336],[-2.7333,-2.6666,0.01311],[-2.6666,-2.5999,0.01412],[-2.5999,-2.5333,0.01437],[-2.5333,-2.4667,0.01535],[-2.4667,-2.4,0.01524],[-2.4,-2.3334,0.01747],[-2.3334,-2.2667,0.01943],[-2.2667,-2.2,0.02274],[-2.2,-2.1333,0.02829],[-2.1333,-2.0667,0.03502],[-2.0667,-2.0,0.04116],[-2.0,-1.9333,0.04538],[-1.9333,-1.8666,0.04866],[-1.8666,-1.8,0.05082],[-1.8,-1.7333,0.05169],[-1.7333,-1.6666,0.05151],[-1.6666,-1.6,0.04935],[-1.6,-1.5333,0.04632],[-1.5333,-1.4667,0.04088],[-1.4667,-1.4,0.0338],[-1.4,-1.3334,0.02679],[-1.3334,-1.2667,0.02047],[-1.2667,-1.2,0.01569],[-1.2,-1.1333,0.01182],[-1.1333,-1.0667,0.00788],[-1.0667,-1.0,0.0061],[-1.0,-0.9333,0.00523],[-0.9333,-0.8667,0.0037],[-0.8667,-0.8,0.00262],[-0.8,-0.7333,0.00171],[-0.7333,-0.6666,0.00129],[-0.6666,-0.6,0.00132],[-0.6,-0.5333,0.00077],[-0.5333,-0.4667,0.00035],[-0.4667,-0.4,0.00031],[-0.4,-0.3334,0.00038],[-0.3334,-0.2667,0.00017],[-0.2667,-0.2,0.00038],[-0.2,-0.1334,0.00028],[-0.1334,-0.0667,0.00045]],"ymax":0.07,"ticks":[0,0.02,0.04,0.06]}}}</script></figure>
+  <div class="col">
+    <h3>A random-matrix view</h3>
+    <p>Model the momentum as <span class="m">M<sub>ij</sub> = s<sub>ij</sub>&#8201;&xi;<sub>ij</sub></span>, where <span class="m">s<sub>ij</sub></span> is a fixed per-entry scale and the <span class="m">&xi;<sub>ij</sub></span> are i.i.d. with zero mean and unit variance. Uneven scales push many singular values toward zero. Muon&sup2;'s second-moment preconditioning divides each entry by an estimate of <span class="m">s<sub>ij</sub></span>, so the NS input becomes approximately the i.i.d. matrix <span class="m">&xi;</span>:</p>
+    <div class="eq"><span class="m lines"><span>M&#771;<sub>ij</sub> = M<sub>ij</sub>&#8202;/&#8202;s<sub>ij</sub> = &xi;<sub>ij</sub></span><span><span class="up">singular values of</span> M&#771;&#8202;/&#8202;&radic;n &rarr; <span class="up">Marchenko&ndash;Pastur law on</span> <span class="nw">[1 &minus; &radic;&lambda;, 1 + &radic;&lambda;]</span>, <span class="nw">&lambda; = m&#8202;/&#8202;n</span></span></span></div>
+    <p>For rectangular layers (<span class="m">&lambda;</span> &lt; 1), this support is bounded away from zero, so the fraction of singular values in the dead zone vanishes regardless of the scale profile. For the <span class="nw">512 &times; 1344</span> MLP projections of LLaMA-60M <span class="nw">(<span class="m">&lambda;</span> &asymp; 0.38)</span>, the lower edge after Frobenius normalization is about <span class="nw">1.7 &times; 10<sup>&minus;2</sup></span>, an order of magnitude above the dead-zone boundary of 10<sup>&minus;3</sup>. The conclusion still holds when the momentum also carries a signal: a low-rank signal of bounded strength only lowers this edge by a constant factor, and a weak signal of any rank leaves it unchanged.</p>
+    <h3>Measuring orthogonalization by direction</h3>
+    <p>The optimizer only uses the direction of the orthogonalized update; any overall scale is absorbed by the learning rate. So instead of the orthogonality error, Muon&sup2; is judged by the cosine similarity between the NS output and the exact polar factor. With 3 steps, Muon&sup2; reaches 0.916, close to Muon with 5 steps at 0.931. Cutting Muon to 3 steps drops it to 0.808. The same analysis on GPT-2 Small agrees: Muon&sup2; keeps about 4&times; fewer singular values in the dead zone, and with 3 NS steps it reaches the alignment Muon needs 5 steps for (0.84 against 0.86).</p>
+  </div>
+  <div class="wide" style="max-width:52rem"><figure class="fig"><div class="frame"><div class="chart-head"><div><div class="chart-title">Alignment with the exact orthogonalized update</div><div class="chart-sub">cosine similarity at the end of training</div></div><div class="legend"><span><i class="k-ring" style="border-color:var(--c0)"></i>3 steps</span><span><i class="k-dot" style="background:var(--c0)"></i>5 steps</span></div></div><div class="db"><div class="db-row"><div class="db-lab">Muon</div><div class="db-track"><i class="gl" style="left:8.33%"></i><i class="gl" style="left:29.17%"></i><i class="gl" style="left:50.00%"></i><i class="gl" style="left:70.83%"></i><i class="gl" style="left:91.67%"></i><i class="db-link" style="left:11.67%;width:51.25%"></i><i class="db-pt" style="left:11.67%" tabindex="0" data-tip="{&quot;h&quot;: &quot;Muon&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;0.808&quot;, &quot;l&quot;: &quot;3 steps&quot;}]}"></i><i class="db-pt fill" style="left:62.92%" tabindex="0" data-tip="{&quot;h&quot;: &quot;Muon&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;0.931&quot;, &quot;l&quot;: &quot;5 steps&quot;}]}"></i><span class="db-v l" style="left:11.67%">0.808</span><span class="db-v r" style="left:62.92%">0.931</span></div></div><div class="db-row hl"><div class="db-lab">Muon²-F</div><div class="db-track"><i class="gl" style="left:8.33%"></i><i class="gl" style="left:29.17%"></i><i class="gl" style="left:50.00%"></i><i class="gl" style="left:70.83%"></i><i class="gl" style="left:91.67%"></i><i class="db-link" style="left:50.83%;width:28.75%"></i><i class="db-pt" style="left:50.83%" tabindex="0" data-tip="{&quot;h&quot;: &quot;Muon²-F&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;0.902&quot;, &quot;l&quot;: &quot;3 steps&quot;}]}"></i><i class="db-pt fill" style="left:79.58%" tabindex="0" data-tip="{&quot;h&quot;: &quot;Muon²-F&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;0.971&quot;, &quot;l&quot;: &quot;5 steps&quot;}]}"></i><span class="db-v l" style="left:50.83%">0.902</span><span class="db-v r" style="left:79.58%">0.971</span></div></div><div class="db-row hl"><div class="db-lab">Muon²</div><div class="db-track"><i class="gl" style="left:8.33%"></i><i class="gl" style="left:29.17%"></i><i class="gl" style="left:50.00%"></i><i class="gl" style="left:70.83%"></i><i class="gl" style="left:91.67%"></i><i class="db-link" style="left:56.67%;width:24.58%"></i><i class="db-pt" style="left:56.67%" tabindex="0" data-tip="{&quot;h&quot;: &quot;Muon²&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;0.916&quot;, &quot;l&quot;: &quot;3 steps&quot;}]}"></i><i class="db-pt fill" style="left:81.25%" tabindex="0" data-tip="{&quot;h&quot;: &quot;Muon²&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;0.975&quot;, &quot;l&quot;: &quot;5 steps&quot;}]}"></i><span class="db-v l" style="left:56.67%">0.916</span><span class="db-v r" style="left:81.25%">0.975</span></div></div></div><div class="db-axis"><div></div><div class="hb-ticks"><span style="left:8.33%">0.80</span><span style="left:29.17%">0.85</span><span style="left:50.00%">0.90</span><span style="left:70.83%">0.95</span><span style="left:91.67%">1.00</span></div></div><details class="data-view"><summary>Show the numbers</summary><div class="tbl"><table class="t"><thead><tr><th scope="col">Optimizer</th><th scope="col">3 NS steps</th><th scope="col">5 NS steps</th></tr></thead><tbody><tr><th scope="row">Muon</th><td>0.808</td><td>0.931</td></tr><tr><th scope="row">Muon²-F</th><td>0.902</td><td>0.971</td></tr><tr><th scope="row">Muon²</th><td>0.916</td><td>0.975</td></tr></tbody></table></div></details></div></figure></div>
+  <div class="col">
+    <h3>Muon&sup2;-F keeps Muon's memory footprint</h3>
+    <p>Storing the full second moment costs one extra matrix per weight. Muon&sup2;-F keeps only Adafactor-style row and column statistics and rebuilds the second moment from their outer product. Its memory stays at Muon's level, and it keeps most of the gain.</p>
+  </div>
+  <div class="wide two" style="max-width:52rem"><figure class="fig"><div class="frame"><div class="chart-head"><div><div class="chart-title">LLaMA-1B</div><div class="chart-sub">peak training memory, GB</div></div></div><div class="hbw" style="--room:48px" style="padding-top:20px"><div class="hb"><div class="hb-row"><div class="hb-lab">AdamW</div><div class="hb-track" style="--w:81.56%"><i class="hb-ref" style="--x:74.24%"></i><span class="hb-reflab" style="--x:74.24%">Muon</span><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;LLaMA-1B, AdamW&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;20.39 GB&quot;, &quot;l&quot;: &quot;peak training memory&quot;}]}"></div><div class="hb-val">20.39</div></div></div><div class="hb-row"><div class="hb-lab">Muon</div><div class="hb-track" style="--w:74.24%"><i class="hb-ref" style="--x:74.24%"></i><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;LLaMA-1B, Muon&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;18.56 GB&quot;, &quot;l&quot;: &quot;peak training memory&quot;}]}"></div><div class="hb-val">18.56</div></div></div><div class="hb-row hl"><div class="hb-lab">Muon&sup2;</div><div class="hb-track" style="--w:81.44%"><i class="hb-ref" style="--x:74.24%"></i><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;LLaMA-1B, Muon&amp;sup2;&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;20.36 GB&quot;, &quot;l&quot;: &quot;peak training memory&quot;}]}"></div><div class="hb-val">20.36</div></div></div><div class="hb-row hl"><div class="hb-lab">Muon&sup2;-F</div><div class="hb-track" style="--w:74.28%"><i class="hb-ref" style="--x:74.24%"></i><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;LLaMA-1B, Muon&amp;sup2;-F&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;18.57 GB&quot;, &quot;l&quot;: &quot;peak training memory&quot;}]}"></div><div class="hb-val">18.57</div></div></div></div><div class="hb-axis"><div></div><div class="hb-ticks"><span style="left:0.00%">0</span><span style="left:20.00%">5</span><span style="left:40.00%">10</span><span style="left:60.00%">15</span><span style="left:80.00%">20</span><span style="left:100.00%">25</span></div></div></div></div></figure><figure class="fig"><div class="frame"><div class="chart-head"><div><div class="chart-title">LLaMA-7B</div><div class="chart-sub">peak training memory, GB</div></div></div><div class="hbw" style="--room:48px" style="padding-top:20px"><div class="hb"><div class="hb-row"><div class="hb-lab">AdamW</div><div class="hb-track" style="--w:84.73%"><i class="hb-ref" style="--x:67.56%"></i><span class="hb-reflab" style="--x:67.56%">Muon</span><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;LLaMA-7B, AdamW&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;59.31 GB&quot;, &quot;l&quot;: &quot;peak training memory&quot;}]}"></div><div class="hb-val">59.31</div></div></div><div class="hb-row"><div class="hb-lab">Muon</div><div class="hb-track" style="--w:67.56%"><i class="hb-ref" style="--x:67.56%"></i><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;LLaMA-7B, Muon&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;47.29 GB&quot;, &quot;l&quot;: &quot;peak training memory&quot;}]}"></div><div class="hb-val">47.29</div></div></div><div class="hb-row hl"><div class="hb-lab">Muon&sup2;</div><div class="hb-track" style="--w:86.66%"><i class="hb-ref" style="--x:67.56%"></i><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;LLaMA-7B, Muon&amp;sup2;&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;60.66 GB&quot;, &quot;l&quot;: &quot;peak training memory&quot;}]}"></div><div class="hb-val">60.66</div></div></div><div class="hb-row hl"><div class="hb-lab">Muon&sup2;-F</div><div class="hb-track" style="--w:67.90%"><i class="hb-ref" style="--x:67.56%"></i><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;LLaMA-7B, Muon&amp;sup2;-F&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;47.53 GB&quot;, &quot;l&quot;: &quot;peak training memory&quot;}]}"></div><div class="hb-val">47.53</div></div></div></div><div class="hb-axis"><div></div><div class="hb-ticks"><span style="left:0.00%">0</span><span style="left:28.57%">20</span><span style="left:57.14%">40</span><span style="left:85.71%">60</span></div></div></div></div></figure></div>
+  <div class="col"><p class="note" style="margin-top:12px">Measured on one H100 94GB in bf16 with sequence length 4096 and micro batch size 1. The dashed line marks Muon.</p></div>
+</section>
+
+<section class="sec" id="results" aria-labelledby="results-h">
+  <div class="col">
+    <h2 id="results-h">Results</h2>
+    <p>GPT models pre-trained on FineWeb (3.0B to 15.5B tokens), LLaMA models on C4 (60M to 13B parameters), and a 7B mixture-of-experts model with 1B active parameters, each at 3 and 5 NS steps. Every learning rate was swept for both optimizers.</p>
+    <h3>Fewer steps, lower perplexity</h3>
+    <p>With 3 NS steps, Muon&sup2; has lower validation perplexity than Muon with 5 steps on every model. At equal steps the gap is wider still.</p>
+  </div>
+  <div class="wide" style="max-width:52rem"><figure class="fig"><div class="frame"><div class="chart-head"><div><div class="chart-title">Muon&sup2; with 3 steps against Muon with 5 steps</div><div class="chart-sub">lower validation perplexity, relative</div></div></div><div class="hbw" style="--room:64px"><div class="hb"><div class="hb-row hl"><div class="hb-lab">GPT-Small</div><div class="hb-track" style="--w:54.77%"><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;GPT-Small&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;28.12&quot;, &quot;l&quot;: &quot;Muon², 3 steps&quot;, &quot;k&quot;: &quot;c1&quot;}, {&quot;v&quot;: &quot;29.51&quot;, &quot;l&quot;: &quot;Muon, 5 steps&quot;, &quot;k&quot;: &quot;c0&quot;}]}"></div><div class="hb-val">&minus;4.7%</div></div></div><div class="hb-row hl"><div class="hb-lab">GPT-Base</div><div class="hb-track" style="--w:58.49%"><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;GPT-Base&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;20.39&quot;, &quot;l&quot;: &quot;Muon², 3 steps&quot;, &quot;k&quot;: &quot;c1&quot;}, {&quot;v&quot;: &quot;21.47&quot;, &quot;l&quot;: &quot;Muon, 5 steps&quot;, &quot;k&quot;: &quot;c0&quot;}]}"></div><div class="hb-val">&minus;5.0%</div></div></div><div class="hb-row hl"><div class="hb-lab">GPT-Large</div><div class="hb-track" style="--w:37.74%"><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;GPT-Large&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;16.99&quot;, &quot;l&quot;: &quot;Muon², 3 steps&quot;, &quot;k&quot;: &quot;c1&quot;}, {&quot;v&quot;: &quot;17.56&quot;, &quot;l&quot;: &quot;Muon, 5 steps&quot;, &quot;k&quot;: &quot;c0&quot;}]}"></div><div class="hb-val">&minus;3.2%</div></div></div><div class="hb-row hl"><div class="hb-lab">LLaMA-60M</div><div class="hb-track" style="--w:18.15%"><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;LLaMA-60M&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;24.59&quot;, &quot;l&quot;: &quot;Muon², 3 steps&quot;, &quot;k&quot;: &quot;c1&quot;}, {&quot;v&quot;: &quot;24.98&quot;, &quot;l&quot;: &quot;Muon, 5 steps&quot;, &quot;k&quot;: &quot;c0&quot;}]}"></div><div class="hb-val">&minus;1.6%</div></div></div><div class="hb-row hl"><div class="hb-lab">LLaMA-350M</div><div class="hb-track" style="--w:48.90%"><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;LLaMA-350M&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;13.44&quot;, &quot;l&quot;: &quot;Muon², 3 steps&quot;, &quot;k&quot;: &quot;c1&quot;}, {&quot;v&quot;: &quot;14.03&quot;, &quot;l&quot;: &quot;Muon, 5 steps&quot;, &quot;k&quot;: &quot;c0&quot;}]}"></div><div class="hb-val">&minus;4.2%</div></div></div><div class="hb-row hl"><div class="hb-lab">LLaMA-1B</div><div class="hb-track" style="--w:21.90%"><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;LLaMA-1B&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;10.42&quot;, &quot;l&quot;: &quot;Muon², 3 steps&quot;, &quot;k&quot;: &quot;c1&quot;}, {&quot;v&quot;: &quot;10.62&quot;, &quot;l&quot;: &quot;Muon, 5 steps&quot;, &quot;k&quot;: &quot;c0&quot;}]}"></div><div class="hb-val">&minus;1.9%</div></div></div><div class="hb-row hl"><div class="hb-lab">LLaMA-13B</div><div class="hb-track" style="--w:16.36%"><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;LLaMA-13B&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;9.11&quot;, &quot;l&quot;: &quot;Muon², 3 steps&quot;, &quot;k&quot;: &quot;c1&quot;}, {&quot;v&quot;: &quot;9.24&quot;, &quot;l&quot;: &quot;Muon, 5 steps&quot;, &quot;k&quot;: &quot;c0&quot;}]}"></div><div class="hb-val">&minus;1.4%</div></div></div><div class="hb-row hl"><div class="hb-lab">MoE-7B-A1B</div><div class="hb-track" style="--w:83.29%"><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;MoE-7B-A1B&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;9.85&quot;, &quot;l&quot;: &quot;Muon², 3 steps&quot;, &quot;k&quot;: &quot;c1&quot;}, {&quot;v&quot;: &quot;10.61&quot;, &quot;l&quot;: &quot;Muon, 5 steps&quot;, &quot;k&quot;: &quot;c0&quot;}]}"></div><div class="hb-val">&minus;7.2%</div></div></div></div><div class="hb-axis"><div></div><div class="hb-ticks"><span style="left:0.00%">0%</span><span style="left:23.26%">2%</span><span style="left:46.51%">4%</span><span style="left:69.77%">6%</span><span style="left:93.02%">8%</span></div></div></div></div></figure></div>
+  <div class="col">
+    <figure class="fig"><div class="tbl"><table class="t ppl"><thead><tr><th scope="col" rowspan="2">Model</th><th scope="colgroup" colspan="3" class="grp">3 NS steps</th><th scope="colgroup" colspan="3" class="grp gs">5 NS steps</th></tr><tr><th scope="col">Muon</th><th scope="col">Muon&sup2;</th><th scope="col">Muon&sup2;-F</th><th scope="col" class="gs">Muon</th><th scope="col">Muon&sup2;</th><th scope="col">Muon&sup2;-F</th></tr></thead><tbody><tr><th scope="row">GPT-Small</th><td>32.70</td><td><span class="best">28.12</span></td><td>28.30</td><td class="gs">29.51</td><td>27.95</td><td><span class="best">27.93</span></td></tr><tr><th scope="row">GPT-Base</th><td>24.69</td><td><span class="best">20.39</span></td><td>21.17</td><td class="gs">21.47</td><td><span class="best">19.96</span></td><td>20.58</td></tr><tr><th scope="row">GPT-Large</th><td>21.13</td><td><span class="best">16.99</span></td><td>17.69</td><td class="gs">17.56</td><td><span class="best">16.52</span></td><td>16.55</td></tr><tr><th scope="row">LLaMA-60M</th><td>26.37</td><td><span class="best">24.59</span></td><td>24.68</td><td class="gs">24.98</td><td><span class="best">24.60</span></td><td>24.66</td></tr><tr><th scope="row">LLaMA-350M</th><td>14.91</td><td><span class="best">13.44</span></td><td>13.55</td><td class="gs">14.03</td><td>13.46</td><td><span class="best">13.44</span></td></tr><tr><th scope="row">LLaMA-1B</th><td>11.63</td><td><span class="best">10.42</span></td><td>10.49</td><td class="gs">10.62</td><td><span class="best">10.21</span></td><td><span class="best">10.21</span></td></tr><tr><th scope="row">LLaMA-13B</th><td>10.54</td><td><span class="best">9.11</span></td><td><span class="na">n/a</span></td><td class="gs">9.24</td><td><span class="best">8.71</span></td><td><span class="na">n/a</span></td></tr><tr><th scope="row">MoE-7B-A1B</th><td>11.93</td><td><span class="best">9.85</span></td><td><span class="na">n/a</span></td><td class="gs">10.61</td><td><span class="best">9.66</span></td><td><span class="na">n/a</span></td></tr></tbody></table></div><figcaption>Validation perplexity, lower is better; the best in each group is in bold. Muon&sup2;-F is reported up to LLaMA-1B.</figcaption></figure>
+    <h3>Not tied to one learning rate</h3>
+    <p>On GPT-Large, Muon&sup2; is better at every learning rate in the sweep, with 3 steps and with 5.</p>
+  </div>
+  <div class="wide two"><figure class="fig" data-chart="line"><div class="frame"><div class="chart-head"><div><div class="chart-title">3 Newton&ndash;Schulz steps</div><div class="chart-sub">GPT-Large, validation perplexity</div></div><div class="legend"><span><i class="k-line" style="border-color:var(--c1)"></i>Muon&sup2;</span><span><i class="k-line" style="border-color:var(--c0)"></i>Muon</span></div></div><div class="plot" role="img" aria-label="Learning-rate sweep on GPT-Large with 3 Newton-Schulz steps. Muon squared has lower perplexity at every learning rate."></div></div><script type="application/json">{"aria":"Learning-rate sweep on GPT-Large with 3 Newton-Schulz steps. Muon squared has lower perplexity at every learning rate.","height":250,"rightPad":58,"x":{"min":-0.25,"max":4.25,"ticks":[0,1,2,3,4],"tickFmt":["0.003","0.005","0.01","0.02","0.04"],"cats":["0.003","0.005","0.01","0.02","0.04"],"label":"learning rate","name":"LR"},"y":{"min":15,"max":25,"ticks":[15,17,19,21,23,25],"fmt":"int","tipFmt":2},"series":[{"id":"mu","name":"Muon","k":"c0","points":[[0,21.88],[1,21.13],[2,21.5],[3,21.57],[4,23.77]],"end":["23.8","Muon"]},{"id":"m2","name":"Muon\u00b2","k":"c1","points":[[0,18.14],[1,17.28],[2,16.99],[3,17.28],[4,18.41]],"end":["18.4","Muon\u00b2"]}]}</script></figure><figure class="fig" data-chart="line"><div class="frame"><div class="chart-head"><div><div class="chart-title">5 Newton&ndash;Schulz steps</div><div class="chart-sub">GPT-Large, validation perplexity</div></div><div class="legend"><span><i class="k-line" style="border-color:var(--c1)"></i>Muon&sup2;</span><span><i class="k-line" style="border-color:var(--c0)"></i>Muon</span></div></div><div class="plot" role="img" aria-label="Learning-rate sweep on GPT-Large with 5 Newton-Schulz steps. Muon squared has lower perplexity at every learning rate."></div></div><script type="application/json">{"aria":"Learning-rate sweep on GPT-Large with 5 Newton-Schulz steps. Muon squared has lower perplexity at every learning rate.","height":250,"rightPad":58,"x":{"min":-0.25,"max":4.25,"ticks":[0,1,2,3,4],"tickFmt":["0.003","0.005","0.01","0.02","0.04"],"cats":["0.003","0.005","0.01","0.02","0.04"],"label":"learning rate","name":"LR"},"y":{"min":15,"max":25,"ticks":[15,17,19,21,23,25],"fmt":"int","tipFmt":2},"series":[{"id":"mu","name":"Muon","k":"c0","points":[[0,18.44],[1,18.32],[2,18.32],[3,17.57],[4,18.8]],"end":["18.8","Muon"]},{"id":"m2","name":"Muon\u00b2","k":"c1","points":[[0,17.38],[1,16.82],[2,16.6],[3,16.52],[4,17.55]],"end":["17.6","Muon\u00b2"]}]}</script></figure></div>
+  <div class="col">
+    <h3>Against other Muon variants</h3>
+    <p>PolarExpress and Turbo-Muon change the polar approximation; NorMuon and AdaMuon add second-moment statistics to the update itself. With tuned hyper-parameters, none of them matches Muon&sup2;, even when they run more NS steps than it does.</p>
+    <figure class="fig"><div class="tbl"><table class="t"><thead><tr><th scope="col"></th><th scope="col">GPT-Small<span class="sub">3 steps</span></th><th scope="col">GPT-Small<span class="sub">5 steps</span></th><th scope="col">GPT-Base<span class="sub">3 steps</span></th><th scope="col">GPT-Base<span class="sub">5 steps</span></th></tr></thead><tbody><tr class="ours"><th scope="row">Muon&sup2;</th><td><span class="best">28.12</span></td><td><span class="best">27.95</span></td><td><span class="best">20.39</span></td><td><span class="best">19.96</span></td></tr><tr><th scope="row">Muon</th><td>32.70</td><td>29.51</td><td>24.69</td><td>21.47</td></tr><tr><th scope="row">PolarExpress</th><td>30.01</td><td>29.42</td><td>22.74</td><td>21.16</td></tr><tr><th scope="row">Turbo-Muon</th><td>29.70</td><td>29.66</td><td>23.46</td><td>21.93</td></tr><tr><th scope="row">NorMuon</th><td>30.35</td><td>28.40</td><td>23.33</td><td>21.27</td></tr><tr><th scope="row">AdaMuon</th><td>31.20</td><td>29.30</td><td>26.07</td><td>22.42</td></tr></tbody></table></div><figcaption>Validation perplexity on GPT-Small and GPT-Base.</figcaption></figure>
+    <h3>Downstream</h3>
+    <p>On eight tasks with the trained LLaMA-1B, Muon&sup2; averages 47.83 with 5 steps against 45.36 for Muon, and with 3 steps (45.89) it is still ahead of Muon with 5. At this scale ARC-Challenge, WinoGrande and MMLU sit close to random guessing when evaluated zero-shot, so every model is fine-tuned on those three tasks with the same protocol before evaluation. GPT-Large shows the same ordering.</p>
+  </div>
+  <div class="wide" style="max-width:52rem"><figure class="fig"><div class="frame"><div class="chart-head"><div><div class="chart-title">Downstream accuracy</div><div class="chart-sub">average over eight tasks, %</div></div><div class="legend"><span><i class="k-ring" style="border-color:var(--c0)"></i>3 steps</span><span><i class="k-dot" style="background:var(--c0)"></i>5 steps</span></div></div><div class="db"><div class="db-grp">LLaMA-1B</div><div class="db-row"><div class="db-lab">Muon</div><div class="db-track"><i class="gl" style="left:0.00%"></i><i class="gl" style="left:23.26%"></i><i class="gl" style="left:46.51%"></i><i class="gl" style="left:69.77%"></i><i class="gl" style="left:93.02%"></i><i class="db-link" style="left:29.77%;width:32.56%"></i><i class="db-pt" style="left:29.77%" tabindex="0" data-tip="{&quot;h&quot;: &quot;Muon&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;42.56&quot;, &quot;l&quot;: &quot;3 steps&quot;}]}"></i><i class="db-pt fill" style="left:62.33%" tabindex="0" data-tip="{&quot;h&quot;: &quot;Muon&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;45.36&quot;, &quot;l&quot;: &quot;5 steps&quot;}]}"></i><span class="db-v l" style="left:29.77%">42.56</span><span class="db-v r" style="left:62.33%">45.36</span></div></div><div class="db-row hl"><div class="db-lab">Muon&sup2;</div><div class="db-track"><i class="gl" style="left:0.00%"></i><i class="gl" style="left:23.26%"></i><i class="gl" style="left:46.51%"></i><i class="gl" style="left:69.77%"></i><i class="gl" style="left:93.02%"></i><i class="db-link" style="left:68.49%;width:22.56%"></i><i class="db-pt" style="left:68.49%" tabindex="0" data-tip="{&quot;h&quot;: &quot;Muon&amp;sup2;&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;45.89&quot;, &quot;l&quot;: &quot;3 steps&quot;}]}"></i><i class="db-pt fill" style="left:91.05%" tabindex="0" data-tip="{&quot;h&quot;: &quot;Muon&amp;sup2;&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;47.83&quot;, &quot;l&quot;: &quot;5 steps&quot;}]}"></i><span class="db-v l" style="left:68.49%">45.89</span><span class="db-v r" style="left:91.05%">47.83</span></div></div><div class="db-grp">GPT-Large</div><div class="db-row"><div class="db-lab">Muon</div><div class="db-track"><i class="gl" style="left:0.00%"></i><i class="gl" style="left:23.26%"></i><i class="gl" style="left:46.51%"></i><i class="gl" style="left:69.77%"></i><i class="gl" style="left:93.02%"></i><i class="db-link" style="left:8.02%;width:16.05%"></i><i class="db-pt" style="left:8.02%" tabindex="0" data-tip="{&quot;h&quot;: &quot;Muon&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;40.69&quot;, &quot;l&quot;: &quot;3 steps&quot;}]}"></i><i class="db-pt fill" style="left:24.07%" tabindex="0" data-tip="{&quot;h&quot;: &quot;Muon&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;42.07&quot;, &quot;l&quot;: &quot;5 steps&quot;}]}"></i><span class="db-v l" style="left:8.02%">40.69</span><span class="db-v r" style="left:24.07%">42.07</span></div></div><div class="db-row hl"><div class="db-lab">Muon&sup2;</div><div class="db-track"><i class="gl" style="left:0.00%"></i><i class="gl" style="left:23.26%"></i><i class="gl" style="left:46.51%"></i><i class="gl" style="left:69.77%"></i><i class="gl" style="left:93.02%"></i><i class="db-link" style="left:33.72%;width:9.30%"></i><i class="db-pt" style="left:33.72%" tabindex="0" data-tip="{&quot;h&quot;: &quot;Muon&amp;sup2;&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;42.90&quot;, &quot;l&quot;: &quot;3 steps&quot;}]}"></i><i class="db-pt fill" style="left:43.02%" tabindex="0" data-tip="{&quot;h&quot;: &quot;Muon&amp;sup2;&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;43.70&quot;, &quot;l&quot;: &quot;5 steps&quot;}]}"></i><span class="db-v l" style="left:33.72%">42.90</span><span class="db-v r" style="left:43.02%">43.70</span></div></div></div><div class="db-axis"><div></div><div class="hb-ticks"><span style="left:0.00%">40</span><span style="left:23.26%">42</span><span style="left:46.51%">44</span><span style="left:69.77%">46</span><span style="left:93.02%">48</span></div></div><details class="data-view"><summary>Show all eight tasks</summary><div class="tbl"><table class="t"><thead><tr><th scope="col"></th><th scope="col">ARC-c&dagger;</th><th scope="col">ARC-e</th><th scope="col">OBQA</th><th scope="col">HellaSwag</th><th scope="col">PIQA</th><th scope="col">WinoGrande&dagger;</th><th scope="col">LAMBADA</th><th scope="col">MMLU&dagger;</th><th scope="col">Avg</th></tr></thead><tbody><tr><th scope="row">LLaMA-1B, Muon, 3 steps</th><td>27.08</td><td>42.80</td><td>32.00</td><td>44.37</td><td>71.22</td><td>56.75</td><td>36.52</td><td>29.75</td><td>42.56</td></tr><tr><th scope="row">LLaMA-1B, Muon, 5 steps</th><td>30.01</td><td>46.09</td><td>33.20</td><td>49.75</td><td>72.25</td><td>59.91</td><td>40.99</td><td>30.71</td><td>45.36</td></tr><tr class="ours"><th scope="row">LLaMA-1B, Muon&sup2;, 3 steps</th><td>31.91</td><td>47.81</td><td>31.80</td><td>50.23</td><td>72.20</td><td>59.88</td><td>42.50</td><td>30.79</td><td>45.89</td></tr><tr class="ours"><th scope="row">LLaMA-1B, Muon&sup2;, 5 steps</th><td>33.48</td><td>49.03</td><td>35.20</td><td>52.61</td><td>74.05</td><td>61.90</td><td>45.08</td><td>31.31</td><td>47.83</td></tr><tr><th scope="row">GPT-Large, Muon, 3 steps</th><td>27.99</td><td>44.23</td><td>30.80</td><td>39.92</td><td>68.82</td><td>54.56</td><td>32.19</td><td>27.02</td><td>40.69</td></tr><tr><th scope="row">GPT-Large, Muon, 5 steps</th><td>28.21</td><td>44.07</td><td>30.40</td><td>42.50</td><td>69.80</td><td>59.12</td><td>37.07</td><td>25.41</td><td>42.07</td></tr><tr class="ours"><th scope="row">GPT-Large, Muon&sup2;, 3 steps</th><td>28.30</td><td>44.91</td><td>29.40</td><td>43.72</td><td>69.70</td><td>60.77</td><td>40.03</td><td>26.38</td><td>42.90</td></tr><tr class="ours"><th scope="row">GPT-Large, Muon&sup2;, 5 steps</th><td>30.26</td><td>46.93</td><td>31.60</td><td>45.01</td><td>69.80</td><td>60.38</td><td>40.07</td><td>25.52</td><td>43.70</td></tr></tbody></table></div><p class="note" style="margin:10px 0 0">&dagger; fine-tuned on the task before evaluation, with the same protocol for every optimizer; the other tasks are zero-shot. On GPT-Large all four models stay at chance on MMLU even after fine-tuning.</p></details></div></figure></div>
+</section>
+
+<section class="sec col" id="citation" aria-labelledby="citation-h">
+  <h2 id="citation-h">Citation</h2>
+  <div class="bib"><div class="bib-top"><span class="label">BibTeX</span><button class="copy" type="button" data-target="bib"><svg class="i" aria-hidden="true"><use href="#i-copy"/></svg><span>Copy</span></button></div><pre id="bib">@inproceedings{liu2026muon2,
+  title     = {Muon$^2$: Boosting Muon via Adaptive Second-Moment Preconditioning},
+  author    = {Liu, Ziyue and Zhang, Ruijie and Wang, Zhengyang and Zhao, Yequan and
+               Su, Yupeng and Yang, Zi and Zhang, Zheng},
+  booktitle = {Proceedings of the 2026 Conference on Empirical Methods in Natural Language Processing},
+  year      = {2026}
+}</pre></div>
+</section>
+
+</main>
+<footer class="foot">
+  <div class="foot-in">
+    <span>&copy; 2026 Ziyue (Alvin) Liu &middot; <a href="../">Homepage</a></span>
+    <nav aria-label="Other projects"><a href="../recover/">ReCoVer</a><a href="../cola/">CoLA</a></nav>
+  </div>
+</footer>
+<script>
+(function () {
+  var root = document.documentElement;
+  var dq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+  function theme() {
+    var t = root.getAttribute("data-theme");
+    return t === "light" || t === "dark" ? t : (dq && dq.matches ? "dark" : "light");
+  }
+  var tb = document.getElementById("theme-toggle");
+  if (tb) tb.addEventListener("click", function () {
+    var n = theme() === "dark" ? "light" : "dark";
+    root.setAttribute("data-theme", n);
+    try { localStorage.setItem("zl-theme", n); } catch (e) {}
+  });
+
+  /* copy BibTeX */
+  document.querySelectorAll(".copy").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var pre = document.getElementById(b.getAttribute("data-target"));
+      var txt = pre.textContent;
+      function sel() { var r = document.createRange(); r.selectNodeContents(pre); var s = getSelection(); s.removeAllRanges(); s.addRange(r); }
+      function done(msg) { var l = b.querySelector("span"); var old = l.textContent; l.textContent = msg; setTimeout(function () { l.textContent = old; }, 1600); }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(txt).then(function () { done("Copied"); }, function () { sel(); done("Press Ctrl+C"); });
+      } else { sel(); done("Press Ctrl+C"); }
+    });
+  });
+
+  /* tooltip */
+  var tip = document.createElement("div");
+  tip.className = "tip"; tip.hidden = true; tip.setAttribute("role", "status");
+  document.body.appendChild(tip);
+  function fill(head, rows) {
+    tip.textContent = "";
+    if (head) { var h = document.createElement("div"); h.className = "tip-h"; h.textContent = head; tip.appendChild(h); }
+    rows.forEach(function (r) {
+      var row = document.createElement("div"); row.className = "tip-r";
+      if (r.k) { var k = document.createElement("i"); k.className = "tip-k"; k.style.borderColor = "var(--" + r.k + ")"; row.appendChild(k); }
+      var v = document.createElement("strong"); v.textContent = r.v; row.appendChild(v);
+      if (r.l) { var l = document.createElement("span"); l.textContent = r.l; row.appendChild(l); }
+      tip.appendChild(row);
+    });
+    tip.hidden = false;
+  }
+  function place(x, y) {
+    var w = tip.offsetWidth, h = tip.offsetHeight, vw = innerWidth;
+    var left = Math.min(Math.max(8, x + 14), vw - w - 8);
+    var top = y - h - 12; if (top < 8) top = y + 16;
+    tip.style.left = left + "px"; tip.style.top = top + "px";
+  }
+  function hide() { tip.hidden = true; }
+  window.__tip = { fill: fill, place: place, hide: hide };
+  function bindTips(scope) {
+    scope.querySelectorAll("[data-tip]").forEach(function (el) {
+      if (el.__tipBound) return; el.__tipBound = true;
+      var d = JSON.parse(el.getAttribute("data-tip"));
+      el.addEventListener("pointerenter", function (e) { fill(d.h, d.r); place(e.clientX, e.clientY); });
+      el.addEventListener("pointermove", function (e) { place(e.clientX, e.clientY); });
+      el.addEventListener("pointerleave", hide);
+      el.addEventListener("focus", function () { var b = el.getBoundingClientRect(); fill(d.h, d.r); place(b.left + b.width / 2, b.top); });
+      el.addEventListener("blur", hide);
+    });
+  }
+  window.__bindTips = bindTips;
+  bindTips(document);
+  addEventListener("scroll", hide, { passive: true });
+
+  /* ---------- SVG helpers ---------- */
+  var NS = "http://www.w3.org/2000/svg";
+  function E(tag, a, p) { var e = document.createElementNS(NS, tag); for (var k in a) e.setAttribute(k, a[k]); if (p) p.appendChild(e); return e; }
+  function T(p, x, y, s, cls, anchor, base) {
+    var t = E("text", { x: x, y: y, "text-anchor": anchor || "start" }, p);
+    if (cls) t.setAttribute("class", cls);
+    if (base) t.setAttribute("dominant-baseline", base);
+    t.textContent = s; return t;
+  }
+  function scale(d0, d1, r0, r1) { return function (v) { return r0 + (v - d0) / (d1 - d0) * (r1 - r0); }; }
+  function fmt(v, f) {
+    if (f === "int") return Math.round(v).toLocaleString("en-US");
+    if (typeof f === "number") return v.toFixed(f);
+    return String(v);
+  }
+
+  /* line chart: spec {height, x:{min,max,ticks,label,fmt}, y:{...,label}, series:[{id,name,k,points,end,style}], band:{lo,hi}} */
+  function lineChart(box, s) {
+    var W = box.clientWidth, H = Math.round(Math.min(s.height || 300, Math.max(s.strip ? 310 : 220, W * 0.62)));
+    var compact = W < 520;
+    var m = { l: 46, r: s.rightPad != null ? s.rightPad : 104, t: s.y.label ? 30 : 10, b: s.x.label ? 46 : 28 };
+    if (compact) m.r = Math.min(m.r, s.compactPad || 52);
+    box.textContent = "";
+    var svg = E("svg", { viewBox: "0 0 " + W + " " + H, height: H, role: "img", "aria-label": s.aria || "" }, box);
+    /* optional strip under the plot, on its own scale, for points listed in a series' gaps */
+    var st = s.strip, mb = st ? H - m.b - st.h - 18 : H - m.b;
+    var X = scale(s.x.min, s.x.max, m.l, W - m.r), Y = scale(s.y.min, s.y.max, mb, m.t);
+    var Ys = st ? scale(st.min, st.max, H - m.b, H - m.b - st.h) : null;
+    s.y.ticks.forEach(function (v) {
+      var y = Math.round(Y(v)) + .5;
+      E("line", { x1: m.l, x2: W - m.r, y1: y, y2: y, "class": v === s.y.min && !st ? "ax" : "gl" }, svg);
+      T(svg, m.l - 8, y, fmt(v, s.y.fmt), null, "end", "middle");
+    });
+    if (st) {
+      E("rect", { x: m.l, y: H - m.b - st.h, width: W - m.l - m.r, height: st.h, "class": "strip" }, svg);
+      st.ticks.forEach(function (v) {
+        var y = Math.round(Ys(v)) + .5;
+        E("line", { x1: m.l, x2: W - m.r, y1: y, y2: y, "class": v === st.min ? "ax" : "gl" }, svg);
+        T(svg, m.l - 8, y, fmt(v, s.y.fmt), null, "end", "middle");
+      });
+      T(svg, W - m.r - 8, H - m.b - 11, compact ? st.short : st.label, "crit", "end", "middle");
+    }
+    s.x.ticks.forEach(function (v, i) {
+      if (compact && s.x.thin && i % 2) return;
+      T(svg, X(v), H - m.b + 18, s.x.tickFmt ? s.x.tickFmt[i] : fmt(v, s.x.fmt), null, "middle");
+    });
+    if (s.x.label) T(svg, (m.l + W - m.r) / 2, H - 8, s.x.label, null, "middle");
+    if (s.y.label) T(svg, 0, 11, s.y.label, "ylab", "start", "middle");
+    function path(pts) { return pts.map(function (p, i) { return (i ? "L" : "M") + X(p[0]).toFixed(1) + " " + Y(p[1]).toFixed(1); }).join(""); }
+    var byId = {};
+    s.series.forEach(function (se) { byId[se.id] = se; });
+    if (s.band) {
+      var lo = byId[s.band.lo].points, hi = byId[s.band.hi].points;
+      var d = path(hi) + lo.slice().reverse().map(function (p) { return "L" + X(p[0]).toFixed(1) + " " + Y(p[1]).toFixed(1); }).join("") + "Z";
+      E("path", { d: d, "class": "wash" }, svg);
+    }
+    var ends = [];
+    s.series.forEach(function (se) {
+      var gap = se.gaps ? se.gaps.reduce(function (o, x) { o[x] = 1; return o; }, {}) : null;
+      se._gap = gap;
+      var pts = gap ? se.points.filter(function (p) { return !gap[p[0]]; }) : se.points;
+      E("path", { d: path(pts), "class": (se.style === "under" ? "under s-" : "ln s-") + se.k }, svg);
+      if (gap) se.points.forEach(function (p) {
+        if (gap[p[0]]) E("circle", { cx: X(p[0]).toFixed(1), cy: (st ? Ys : Y)(p[1]).toFixed(1), r: compact ? 2.4 : 3, "class": "fdot" }, svg);
+      });
+    });
+    s.series.forEach(function (se) {
+      var last = se.points[se.points.length - 1];
+      if (se.marker !== false) E("circle", { cx: X(last[0]), cy: Y(last[1]), r: 4.5, "class": "dot f-" + se.k }, svg);
+      if (se.end) ends.push({ se: se, x: X(last[0]), y0: Y(last[1]), two: !compact && se.end[1] });
+    });
+    /* end labels: keep them from overlapping, with a short leader when a label had to move */
+    ends.sort(function (a, b) { return a.y0 - b.y0; });
+    ends.forEach(function (e) { e.h = e.two ? 32 : 17; e.y = e.y0; });
+    var H0 = H; H = mb + m.b; /* keep end labels inside the main plot */
+    for (var it = 0; it < 20; it++) {
+      var moved = false;
+      for (var i = 1; i < ends.length; i++) {
+        var a = ends[i - 1], b = ends[i], need = (a.h + b.h) / 2 + 2 - (b.y - a.y);
+        if (need > 0) { a.y -= need / 2; b.y += need / 2; moved = true; }
+      }
+      ends.forEach(function (e) { e.y = Math.max(m.t + e.h / 2 - 4, Math.min(H - m.b - e.h / 2 + 4, e.y)); });
+      if (!moved) break;
+    }
+    H = H0;
+    ends.forEach(function (e) {
+      var ex = e.x + 10;
+      if (Math.abs(e.y - e.y0) > 3) { E("line", { x1: e.x + 6, y1: e.y0, x2: ex - 2, y2: e.y, "class": "leader" }, svg); }
+      if (e.two) {
+        T(svg, ex, e.y - 7, e.se.end[0], "val", "start", "middle");
+        T(svg, ex, e.y + 8, e.se.end[1], null, "start", "middle");
+      } else T(svg, ex, e.y, e.se.end[0], "val", "start", "middle");
+    });
+    (s.notes || []).forEach(function (n) {
+      if (compact && n.wide) return;
+      if (!compact && n.narrow) return;
+      T(svg, X(n.x), Y(n.y), n.text, n.cls || null, n.anchor || "start", "middle");
+    });
+    if (s.crosshair === false) return;
+    var g = E("g", { style: "pointer-events:none" }, svg);
+    var xh = E("line", { y1: m.t, y2: H - m.b, "class": "xh", visibility: "hidden" }, g);
+    function yOf(se, p) { return st && se._gap && se._gap[p[0]] ? Ys(p[1]) : Y(p[1]); }
+    var dots = s.series.map(function (se) { return E("circle", { r: 4.5, "class": "dot f-" + se.k, visibility: "hidden" }, g); });
+    var hit = E("rect", { x: m.l, y: m.t, width: W - m.l - m.r, height: H - m.t - m.b, "class": "hit" }, svg);
+    function at(pts, x) {
+      var best = pts[0], bd = Infinity;
+      for (var i = 0; i < pts.length; i++) { var d = Math.abs(pts[i][0] - x); if (d < bd) { bd = d; best = pts[i]; } }
+      return best;
+    }
+    function move(e) {
+      var r = svg.getBoundingClientRect(), px = e.clientX - r.left;
+      var xv = s.x.min + (px - m.l) / (W - m.l - m.r) * (s.x.max - s.x.min);
+      xv = Math.max(s.x.min, Math.min(s.x.max, xv));
+      var rows = [], xs = null;
+      s.series.forEach(function (se, i) {
+        var p = at(se.points, xv); xs = xs == null ? p[0] : xs;
+        dots[i].setAttribute("cx", X(p[0])); dots[i].setAttribute("cy", yOf(se, p)); dots[i].setAttribute("visibility", "visible");
+        var failed = se._gap && se._gap[p[0]];
+        rows.push({ v: fmt(p[1], s.y.tipFmt != null ? s.y.tipFmt : s.y.fmt) + (s.y.unit || ""), l: se.name + (failed ? " (failure step)" : ""), k: failed ? "crit" : se.k });
+      });
+      xh.setAttribute("x1", X(xs)); xh.setAttribute("x2", X(xs)); xh.setAttribute("visibility", "visible");
+      window.__tip.fill(s.x.name + " " + (s.x.cats ? s.x.cats[Math.round(xs)] : fmt(xs, s.x.tipFmt != null ? s.x.tipFmt : s.x.fmt)), rows);
+      window.__tip.place(e.clientX, e.clientY);
+    }
+    hit.addEventListener("pointermove", move);
+    hit.addEventListener("pointerdown", move);
+    hit.addEventListener("pointerleave", function () {
+      window.__tip.hide(); xh.setAttribute("visibility", "hidden");
+      dots.forEach(function (d) { d.setAttribute("visibility", "hidden"); });
+    });
+  }
+
+  /* step histogram over log10(sigma) with convergence zones; spec {sets:{key:{a:[[lo,hi,v]],b:[...]}}, zones, ymax} */
+  function histChart(box, s, key) {
+    var W = box.clientWidth, H = Math.round(Math.min(320, Math.max(240, W * 0.58)));
+    var m = { l: 46, r: 14, t: 46, b: 48 };
+    box.textContent = "";
+    var set = s.sets[key];
+    var svg = E("svg", { viewBox: "0 0 " + W + " " + H, height: H, role: "img", "aria-label": s.aria || "" }, box);
+    var X = scale(-4, 0, m.l, W - m.r), Y = scale(0, set.ymax, H - m.b, m.t);
+    s.zones.forEach(function (z, i) {
+      E("rect", { x: X(z.lo), y: m.t, width: X(z.hi) - X(z.lo), height: H - m.t - m.b, "class": "zone " + (z.cls || "") }, svg);
+      if (i) E("line", { x1: X(z.lo), x2: X(z.lo), y1: m.t - 4, y2: H - m.b, "class": "zline" }, svg);
+      T(svg, (X(z.lo) + X(z.hi)) / 2, m.t - 12, W < 520 ? z.short : z.name, "zlab " + (z.cls || ""), "middle");
+    });
+    set.ticks.forEach(function (v) {
+      var y = Math.round(Y(v)) + .5;
+      E("line", { x1: m.l, x2: W - m.r, y1: y, y2: y, "class": v === 0 ? "ax" : "gl" }, svg);
+      T(svg, m.l - 8, y, v ? v.toFixed(2) : "0", null, "end", "middle");
+    });
+    T(svg, 0, 11, s.ylabel || "", "ylab", "start", "middle");
+    [-4, -3, -2, -1, 0].forEach(function (v) {
+      var t = T(svg, X(v), H - m.b + 21, "10", null, "middle");
+      var sup = E("tspan", { dy: -5, "font-size": 9 }, t); sup.textContent = v ? "\u2212" + String(-v) : "0";
+    });
+    T(svg, (m.l + W - m.r) / 2, H - 8, "singular value of the NS input (log scale)", null, "middle");
+    function stepPath(bins, close) {
+      var d = "M" + X(bins[0][0]).toFixed(1) + " " + Y(0).toFixed(1);
+      bins.forEach(function (b) { d += "L" + X(b[0]).toFixed(1) + " " + Y(b[2]).toFixed(1) + "L" + X(b[1]).toFixed(1) + " " + Y(b[2]).toFixed(1); });
+      d += "L" + X(bins[bins.length - 1][1]).toFixed(1) + " " + Y(0).toFixed(1);
+      return close ? d + "Z" : d;
+    }
+    E("path", { d: stepPath(set.b, true), "class": "wash0" }, svg);
+    E("path", { d: stepPath(set.a, true), "class": "wash" }, svg);
+    E("path", { d: stepPath(set.b), "class": "ln s-c0" }, svg);
+    E("path", { d: stepPath(set.a), "class": "ln s-c1" }, svg);
+    var hit = E("rect", { x: m.l, y: m.t, width: W - m.l - m.r, height: H - m.t - m.b, "class": "hit" }, svg);
+    function find(bins, v) { for (var i = 0; i < bins.length; i++) if (v >= bins[i][0] && v < bins[i][1]) return bins[i]; return null; }
+    hit.addEventListener("pointermove", function (e) {
+      var r = svg.getBoundingClientRect(), v = -4 + (e.clientX - r.left - m.l) / (W - m.l - m.r) * 4;
+      var a = find(set.a, v), b = find(set.b, v);
+      if (!a || !b) { window.__tip.hide(); return; }
+      var c = (a[0] + a[1]) / 2;
+      window.__tip.fill("σ ≈ " + Math.pow(10, c).toExponential(1), [
+        { v: a[2].toFixed(3), l: s.names[0], k: "c1" }, { v: b[2].toFixed(3), l: s.names[1], k: "c0" }]);
+      window.__tip.place(e.clientX, e.clientY);
+    });
+    hit.addEventListener("pointerleave", function () { window.__tip.hide(); });
+  }
+
+  /* bubble chart: spec {x:{min,max,ticks,label}, y:{...}, pts:[{name,x,y,size,k,lab:[dx,dy,anchor]}], rMax} */
+  function bubbleChart(box, s) {
+    var W = box.clientWidth, H = Math.round(Math.min(340, Math.max(250, W * 0.6)));
+    var m = { l: 46, r: 18, t: s.y.label ? 34 : 16, b: 46 };
+    box.textContent = "";
+    var svg = E("svg", { viewBox: "0 0 " + W + " " + H, height: H, role: "img", "aria-label": s.aria || "" }, box);
+    var X = scale(s.x.min, s.x.max, m.l, W - m.r), Y = scale(s.y.min, s.y.max, H - m.b, m.t);
+    if (s.y.label) T(svg, 0, 11, s.y.label, "ylab", "start", "middle");
+    s.y.ticks.forEach(function (v) {
+      var y = Math.round(Y(v)) + .5;
+      E("line", { x1: m.l, x2: W - m.r, y1: y, y2: y, "class": v === s.y.min ? "ax" : "gl" }, svg);
+      T(svg, m.l - 8, y, v.toFixed(s.y.fmt || 0), null, "end", "middle");
+    });
+    s.x.ticks.forEach(function (v) { T(svg, X(v), H - m.b + 18, v + "×", null, "middle"); });
+    T(svg, (m.l + W - m.r) / 2, H - 8, s.x.label, null, "middle");
+    var rmax = Math.max(14, Math.min(s.rMax || 30, W / 22));
+    var smax = Math.max.apply(null, s.pts.map(function (p) { return p.size; }));
+    s.pts.slice().sort(function (a, b) { return b.size - a.size; }).forEach(function (p) {
+      var r = rmax * Math.sqrt(p.size / smax), cx = X(p.x), cy = Y(p.y);
+      var c = E("circle", { cx: cx, cy: cy, r: r, "class": "bub f-" + p.k, tabindex: 0, "fill-opacity": p.k === "c1" ? .9 : .55 }, svg);
+      var tipd = { h: p.name, r: [{ v: p.y.toFixed(2), l: "validation perplexity" }, { v: p.x.toFixed(2) + "×", l: "compute vs full-rank" }, { v: p.size + "M", l: "parameters" }] };
+      c.setAttribute("data-tip", JSON.stringify(tipd));
+      var l = p.lab || [0, -1, "middle"];
+      var ly = l[1] < 0 ? cy - r - 8 : cy + r + 16;
+      T(svg, cx + l[0], ly, p.name, p.k === "c1" ? "lab val" : "lab", l[2]);
+    });
+    window.__bindTips(box);
+  }
+
+  var charts = [];
+  document.querySelectorAll("[data-chart]").forEach(function (fig) {
+    var spec = JSON.parse(fig.querySelector("script[type='application/json']").textContent);
+    var box = fig.querySelector(".plot");
+    var kind = fig.getAttribute("data-chart");
+    var state = { key: spec.initial };
+    function draw() {
+      if (kind === "line") lineChart(box, spec);
+      else if (kind === "hist") histChart(box, spec, state.key);
+      else if (kind === "bubble") bubbleChart(box, spec);
+    }
+    fig.querySelectorAll(".seg button[data-key]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        state.key = b.getAttribute("data-key");
+        fig.querySelectorAll(".seg button").forEach(function (o) { o.setAttribute("aria-pressed", String(o === b)); });
+        var c = fig.querySelector("[data-caption='" + state.key + "']");
+        fig.querySelectorAll("[data-caption]").forEach(function (o) { o.hidden = o !== c; });
+        draw();
+      });
+    });
+    charts.push({ box: box, draw: draw, w: 0 });
+    draw();
+  });
+  var rt;
+  addEventListener("resize", function () {
+    clearTimeout(rt);
+    rt = setTimeout(function () { charts.forEach(function (c) { if (c.box.clientWidth !== c.w) { c.w = c.box.clientWidth; c.draw(); } }); }, 120);
+  });
+})();
+</script>
+</body>
+</html>

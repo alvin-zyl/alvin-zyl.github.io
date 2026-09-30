@@ -1,0 +1,1024 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CoLA: Compute-Efficient Pre-Training of LLMs via Low-Rank Activation</title>
+<meta name="description" content="CoLA replaces the full-size layers of an LLM with low-rank auto-encoders: 2x less compute and a 2x smaller model at full-rank perplexity, with 1.86x training throughput. EMNLP 2025 Oral.">
+<meta name="author" content="Ziyue (Alvin) Liu">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="CoLA: Compute-Efficient Pre-Training of LLMs via Low-Rank Activation">
+<meta property="og:description" content="CoLA replaces the full-size layers of an LLM with low-rank auto-encoders: 2x less compute and a 2x smaller model at full-rank perplexity, with 1.86x training throughput. EMNLP 2025 Oral.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231b4d90'/%3E%3Ctext x='32' y='43' text-anchor='middle' font-family='Georgia,serif' font-size='30' font-weight='700' fill='%23ffffff'%3EZL%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<style>
+/* Layout: slim sticky bar; the paper's title page in one 46rem column; figures and charts widen to 64rem. */
+:root {
+  --bg: #ffffff;
+  --surface: #f5f7fa;
+  --surface-2: #eef2f7;
+  --ink: #131c28;
+  --text: #364355;
+  --muted: #647285;
+  --faint: #a3adbb;
+  --line: #e3e8ef;
+  --accent: #1b4d90;
+  --accent-ink: #143c72;
+  --accent-soft: #edf3fb;
+  --accent-line: #cbdaef;
+  --gold: #8f5d00;
+  --gold-soft: #fff5dc;
+  --gold-line: #e7b94f;
+  --shadow: 0 1px 2px rgba(19, 28, 40, .05), 0 10px 28px -14px rgba(19, 28, 40, .22);
+  /* chart roles */
+  --c1: #2a78d6;              /* ours */
+  --c1-wash: rgba(42, 120, 214, .12);
+  --c1-soft: #d9e7f8;
+  --c0: #8c96a4;              /* baseline, context */
+  --c0b: #b9c1cc;             /* second baseline */
+  --crit: #d03b3b;            /* failure */
+  --crit-soft: #fbe9e9;
+  --grid: #e9edf2;
+  --axis: #c7cfd9;
+  --hatch: rgba(42, 120, 214, .38);
+  --font-display: "Source Serif 4", "Source Serif Pro", Georgia, "Times New Roman", serif;
+  --font-body: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --measure: 46rem;
+  --wide: 64rem;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141b; --surface: #151c26; --surface-2: #1a2330;
+    --ink: #edf1f6; --text: #c3ccd8; --muted: #95a2b3; --faint: #5f6b7c; --line: #243041;
+    --accent: #8db5ee; --accent-ink: #b7d0f5; --accent-soft: #162439; --accent-line: #2d4568;
+    --gold: #f1c45e; --gold-soft: #2a2314; --gold-line: #9a7429;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 12px 30px -14px rgba(0, 0, 0, .7);
+    --c1: #3987e5; --c1-wash: rgba(57, 135, 229, .16); --c1-soft: #1b3150;
+    --c0: #6f7b8c; --c0b: #485466;
+    --crit: #e05a5a; --crit-soft: #3a1d20;
+    --grid: #1e2833; --axis: #334052;
+    --hatch: rgba(57, 135, 229, .45);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141b; --surface: #151c26; --surface-2: #1a2330;
+  --ink: #edf1f6; --text: #c3ccd8; --muted: #95a2b3; --faint: #5f6b7c; --line: #243041;
+  --accent: #8db5ee; --accent-ink: #b7d0f5; --accent-soft: #162439; --accent-line: #2d4568;
+  --gold: #f1c45e; --gold-soft: #2a2314; --gold-line: #9a7429;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 12px 30px -14px rgba(0, 0, 0, .7);
+  --c1: #3987e5; --c1-wash: rgba(57, 135, 229, .16); --c1-soft: #1b3150;
+  --c0: #6f7b8c; --c0b: #485466;
+  --crit: #e05a5a; --crit-soft: #3a1d20;
+  --grid: #1e2833; --axis: #334052;
+  --hatch: rgba(57, 135, 229, .45);
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 84px; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 16.5px;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+img { max-width: 100%; height: auto; }
+[hidden] { display: none !important; }
+a { color: var(--accent); text-decoration: none; text-underline-offset: 3px; }
+a:hover { text-decoration: underline; text-decoration-thickness: 1px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+::selection { background: var(--accent-soft); color: var(--ink); }
+p { margin: 0 0 16px; }
+h1, h2, h3 { color: var(--ink); margin: 0; }
+.nw { white-space: nowrap; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.i { width: 17px; height: 17px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ---------- top bar ---------- */
+.topbar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 40;
+  background: var(--bg);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  -webkit-backdrop-filter: saturate(1.4) blur(12px);
+  backdrop-filter: saturate(1.4) blur(12px);
+  border-bottom: 1px solid var(--line);
+}
+.topbar-in {
+  max-width: var(--wide); margin-inline: auto;
+  padding-inline: clamp(16px, 4vw, 32px);
+  height: 58px; display: flex; align-items: center; gap: 18px;
+}
+.home { display: inline-flex; align-items: center; gap: 8px; color: var(--ink); font-family: var(--font-display); font-weight: 600; font-size: 17px; white-space: nowrap; }
+.home .i { color: var(--muted); width: 16px; height: 16px; }
+.home:hover { color: var(--accent); text-decoration: none; }
+.home:hover .i { color: var(--accent); }
+.toc { margin-left: auto; display: flex; gap: 2px; }
+.toc a { padding: 6px 10px; border-radius: 6px; font-size: 14px; font-weight: 500; color: var(--muted); }
+.toc a:hover { color: var(--ink); background: var(--surface); text-decoration: none; }
+.icon-btn {
+  width: 36px; height: 36px; display: grid; place-items: center; flex: none;
+  border: 1px solid var(--line); border-radius: 8px; background: transparent; color: var(--muted); cursor: pointer; padding: 0;
+}
+.icon-btn:hover { color: var(--ink); border-color: var(--accent-line); }
+.sun { display: none; }
+:root[data-theme="dark"] .sun { display: block; }
+:root[data-theme="dark"] .moon { display: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .sun { display: block; }
+  :root:not([data-theme="light"]) .moon { display: none; }
+}
+@media (max-width: 760px) { .toc { display: none; } .icon-btn { margin-left: auto; } }
+
+/* ---------- page ---------- */
+main { padding-inline: clamp(16px, 4vw, 32px); padding-block: clamp(36px, 7vw, 64px) 88px; }
+.col { max-width: var(--measure); margin-inline: auto; }
+.wide { max-width: var(--wide); margin-inline: auto; }
+
+/* title page */
+.venue { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+.tag {
+  display: inline-block; padding: 3px 9px;
+  border: 1px solid var(--accent-line); border-radius: 6px; background: var(--accent-soft);
+  font-family: var(--font-mono); font-size: 12.5px; font-weight: 500; line-height: 1.4; color: var(--accent-ink);
+}
+.tag.oral { border-color: var(--gold-line); background: var(--gold-soft); color: var(--gold); }
+h1.title {
+  font-family: var(--font-display); font-weight: 600;
+  font-size: clamp(30px, 4.4vw, 46px); line-height: 1.13; letter-spacing: -.018em;
+  text-wrap: balance;
+}
+h1.title .name { color: var(--accent); }
+h1.title .ac { color: var(--accent); }
+.authors { margin: 22px 0 0; font-size: 16px; line-height: 1.75; color: var(--text); }
+.authors a { color: inherit; }
+.authors a:hover { color: var(--accent); }
+.authors .me { color: var(--ink); font-weight: 600; }
+.authors sup { font-size: .68em; color: var(--muted); margin-left: 1px; }
+.affils { margin: 6px 0 0; display: flex; flex-wrap: wrap; gap: 2px 18px; font-size: 14px; color: var(--muted); }
+.affils sup { font-size: .75em; margin-right: 2px; }
+.actions { margin-top: 26px; display: flex; flex-wrap: wrap; gap: 10px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px;
+  border: 1px solid var(--line); border-radius: 999px; background: var(--bg);
+  font-size: 14.5px; font-weight: 500; color: var(--ink);
+  transition: border-color .15s ease, color .15s ease, background-color .15s ease;
+}
+.btn .i { width: 16px; height: 16px; }
+.btn .t { margin-left: 2px; font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; }
+.btn:hover .t { color: inherit; }
+.btn:hover { border-color: var(--accent-line); color: var(--accent); text-decoration: none; }
+.btn.primary { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.btn.primary:hover { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+
+.tldr { margin-top: 44px; }
+.label {
+  font-family: var(--font-mono); font-size: 12px; font-weight: 500;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+}
+.tldr p {
+  margin: 10px 0 0; font-family: var(--font-display); font-size: clamp(20px, 2.3vw, 24px);
+  line-height: 1.45; letter-spacing: -.008em; color: var(--ink); text-wrap: pretty;
+}
+
+.stats {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 26px 32px; margin-top: 40px; padding-top: 28px; border-top: 1px solid var(--line);
+}
+.stats.four { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 26px 24px; }
+@media (max-width: 700px) { .stats.four { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.stat .v { font-size: 34px; font-weight: 600; line-height: 1.05; letter-spacing: -.02em; color: var(--ink); }
+.stat .v small { font-size: 18px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
+.stat .l { margin-top: 8px; font-size: 14px; line-height: 1.5; color: var(--muted); }
+
+/* sections */
+.sec { margin-top: clamp(64px, 9vw, 96px); }
+.sec > .col > h2, .sec h2 {
+  font-family: var(--font-display); font-weight: 600; font-size: clamp(26px, 3vw, 32px);
+  line-height: 1.2; letter-spacing: -.012em; text-wrap: balance; margin-bottom: 18px;
+}
+.sec h3 { font-size: 19px; font-weight: 600; line-height: 1.35; margin: 44px 0 10px; }
+.sec h3 + p { margin-top: 0; }
+.abstract p { color: var(--text); }
+.note { font-size: 14.5px; color: var(--muted); }
+em.term { font-style: normal; color: var(--ink); font-weight: 500; }
+
+/* math */
+.eq {
+  margin: 22px 0; padding: 16px 20px; border-radius: 12px; background: var(--surface);
+  font-family: var(--font-display); font-size: 21px; color: var(--ink); text-align: center;
+  overflow-x: auto;
+}
+.m { font-family: var(--font-display); font-style: italic; white-space: nowrap; }
+.m .up { font-style: normal; font-family: var(--font-body); font-size: .8em; }
+.eq .lines { display: inline-grid; gap: 6px; text-align: left; }
+.eq .lines > span { white-space: normal; }
+sup, sub { line-height: 0; }
+.m b { font-style: normal; font-weight: 700; }
+.m sub, .m sup { font-size: .7em; font-style: normal; }
+.eq .m { font-size: inherit; }
+
+/* figure shell */
+.fig { margin: 30px auto 0; }
+.frame { border: 1px solid var(--line); border-radius: 16px; background: var(--bg); padding: clamp(16px, 3vw, 28px); }
+.fig figcaption, .fig .cap { margin: 12px auto 0; max-width: var(--measure); font-size: 14px; line-height: 1.6; color: var(--muted); }
+.fig figcaption b { color: var(--text); font-weight: 600; }
+.chart-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 18px; margin-bottom: 16px; }
+.chart-title { font-size: 15px; font-weight: 600; color: var(--ink); line-height: 1.4; }
+.chart-sub { font-size: 13px; color: var(--muted); }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.k-line { width: 16px; height: 0; border-top: 2px solid; border-radius: 2px; }
+.k-box { width: 10px; height: 10px; border-radius: 3px; }
+.k-dot { width: 9px; height: 9px; border-radius: 50%; }
+.k-ring { width: 9px; height: 9px; border-radius: 50%; border: 2px solid; background: var(--bg); }
+.c1 { color: var(--c1); } .c0 { color: var(--c0); } .c0b { color: var(--c0b); }
+.bg-c1 { background: var(--c1); } .bg-c0 { background: var(--c0); } .bg-c0b { background: var(--c0b); }
+.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; margin-top: 30px; }
+.two > .fig { margin: 0; min-width: 0; display: flex; flex-direction: column; }
+.two > .fig > .frame { flex: 1; }
+@media (max-width: 820px) { .two { grid-template-columns: minmax(0, 1fr); } }
+.k-hatch { width: 10px; height: 10px; border-radius: 3px; background: repeating-linear-gradient(135deg, var(--c0) 0 1.5px, transparent 1.5px 3.5px); box-shadow: inset 0 0 0 1px var(--c0); }
+.k-band { width: 16px; height: 6px; border-radius: 3px; }
+.k-dash { width: 16px; height: 0; border-top: 2px dashed; }
+.data-view { margin-top: 14px; }
+.data-view summary { width: fit-content; max-width: 100%; font-size: 13px; color: var(--muted); cursor: pointer; list-style: none; }
+.data-view summary::-webkit-details-marker { display: none; }
+.data-view summary::before { content: "+ "; font-family: var(--font-mono); }
+.data-view[open] summary::before { content: "\2212  "; }
+.data-view summary:hover { color: var(--ink); }
+.data-view .tbl { margin-top: 10px; }
+
+/* tables */
+.tbl { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table.t { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+table.t th, table.t td { padding: 9px 12px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--line); }
+table.t th:first-child, table.t td:first-child { text-align: left; }
+table.t thead th { font-size: 12.5px; font-weight: 600; color: var(--muted); border-bottom-color: var(--axis); vertical-align: bottom; }
+table.t tbody th { font-weight: 500; color: var(--ink); }
+table.t td { color: var(--text); }
+table.t .best { color: var(--ink); font-weight: 600; }
+table.t tr.ours td, table.t tr.ours th { background: var(--accent-soft); }
+table.t tr.ours th { color: var(--accent-ink); font-weight: 600; }
+table.t .d { color: var(--muted); font-size: 12px; margin-left: 4px; font-weight: 400; }
+table.t tr.grp td, table.t tr.grp th { border-top: 1px solid var(--axis); }
+table.t .sub { display: block; font-size: 11.5px; font-weight: 400; color: var(--faint); }
+.yes, .no { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; font-size: 13px; font-weight: 700; }
+.yes { background: var(--c1-soft); color: var(--c1); }
+.no { background: var(--surface-2); color: var(--faint); }
+
+/* HTML bar charts */
+.hb { display: grid; gap: 10px; }
+.hb-row { display: grid; grid-template-columns: minmax(92px, 24%) minmax(0, 1fr); align-items: center; gap: 14px; }
+.hb-lab { font-size: 13.5px; color: var(--text); text-align: right; line-height: 1.3; }
+.hb-row.hl .hb-lab { color: var(--ink); font-weight: 600; }
+.hb-track { position: relative; height: 22px; margin-right: var(--room, 64px); }
+.hb-bar { position: absolute; left: 0; top: 2px; height: 18px; width: var(--w); border-radius: 0 4px 4px 0; background: var(--c0); outline: none; transition: filter .15s ease; }
+.hb-row.hl .hb-bar { background: var(--c1); }
+.hb-bar:hover, .hb-bar:focus-visible { filter: brightness(1.1); }
+.hb-val { position: absolute; top: 50%; left: calc(var(--w) + 4px); transform: translateY(-50%); padding: 0 4px; border-radius: 4px; background: var(--bg); font-size: 12.5px; font-weight: 600; color: var(--ink); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.hb-val small { font-weight: 500; color: var(--muted); margin-left: 4px; }
+.hb-ref { position: absolute; top: -6px; bottom: -6px; left: var(--x); border-left: 1.5px dashed var(--muted); }
+.hb-axis { display: grid; grid-template-columns: minmax(92px, 24%) minmax(0, 1fr); gap: 14px; margin-top: 4px; }
+.hb-ticks { position: relative; height: 18px; margin-right: var(--room, 64px); border-top: 1px solid var(--axis); font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.hb-reflab { position: absolute; top: -18px; left: var(--x); transform: translateX(-50%); font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+.hb-ticks span { position: absolute; top: 3px; transform: translateX(-50%); }
+
+/* grouped columns */
+.cols { display: grid; grid-template-columns: 38px minmax(0, 1fr); gap: 0 8px; }
+.cols-y { position: relative; }
+.cols-y span { position: absolute; right: 0; transform: translateY(50%); font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.cols-plot { position: relative; height: 230px; border-bottom: 1px solid var(--axis); }
+.cols-plot .gl { position: absolute; left: 0; right: 0; border-top: 1px solid var(--grid); }
+.cols-groups { position: absolute; inset: 0; display: flex; }
+.cg { flex: 1; display: flex; align-items: flex-end; justify-content: center; gap: 2px; }
+.cb { position: relative; width: min(20px, 34%); border-radius: 4px 4px 0 0; background: var(--c0); outline: none; transition: filter .15s ease; }
+.cb.hl { background: var(--c1); }
+.cb:hover, .cb:focus-visible { filter: brightness(1.12); }
+.cb-v { position: absolute; bottom: calc(100% + 4px); left: 50%; transform: translateX(-50%); font-size: 11.5px; font-weight: 600; color: var(--ink); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.cols-plot .ref { position: absolute; left: 0; right: 0; z-index: 1; border-top: 1.5px dashed var(--muted); pointer-events: none; }
+.cols-plot .ref-lab { position: absolute; left: 0; bottom: 100%; margin-bottom: 3px; padding: 0 4px 0 0; background: var(--bg); font-size: 11.5px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.cols-plot .ref-lab b { color: var(--text); font-weight: 600; }
+.cols-x { grid-column: 2; display: flex; }
+.cols-x span { flex: 1; text-align: center; font-size: 12px; color: var(--muted); padding-top: 6px; }
+.cols-xlab { grid-column: 2; text-align: center; font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+/* dumbbell */
+.db { display: grid; gap: 4px; }
+.db-row { display: grid; grid-template-columns: minmax(88px, 22%) minmax(0, 1fr); align-items: center; gap: 14px; height: 44px; }
+.db-lab { text-align: right; font-size: 13.5px; color: var(--text); }
+.db-row.hl .db-lab { color: var(--ink); font-weight: 600; }
+.db-track { position: relative; height: 100%; margin-inline: 46px; }
+.db-track .gl { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--grid); }
+.db-link { position: absolute; top: 50%; height: 2px; margin-top: -1px; background: var(--c0); border-radius: 2px; }
+.db-row.hl .db-link { background: var(--c1); }
+.db-pt { position: absolute; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; border: 2px solid var(--c0); background: var(--bg); box-shadow: 0 0 0 2px var(--bg); outline: none; }
+.db-pt.fill { background: var(--c0); }
+.db-row.hl .db-pt { border-color: var(--c1); }
+.db-row.hl .db-pt.fill { background: var(--c1); }
+.db-pt::after { content: ""; position: absolute; inset: -8px; }
+.db-v { position: absolute; top: 50%; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.db-v.r { transform: translate(12px, -50%); }
+.db-v.l { transform: translate(calc(-100% - 12px), -50%); }
+.db-row.hl .db-v { color: var(--ink); font-weight: 600; }
+.db-axis { display: grid; grid-template-columns: minmax(88px, 22%) minmax(0, 1fr); gap: 14px; }
+.db-grp { margin: 10px 0 -2px; font-size: 12.5px; font-weight: 600; color: var(--muted); }
+.db-grp:first-child { margin-top: 0; }
+.db-axis .hb-ticks { margin-inline: 46px; }
+@media (max-width: 600px) { .db-track, .db-axis .hb-ticks { margin-inline: 38px; } .db-v { font-size: 11px; } }
+
+/* SVG charts (drawn by script at the container's size) */
+.plot { position: relative; width: 100%; }
+.plot svg { display: block; width: 100%; overflow: visible; }
+.plot text { font-family: var(--font-body); font-size: 12px; fill: var(--muted); }
+.plot text.lab { fill: var(--text); font-size: 12.5px; font-weight: 500; }
+.plot text.val { fill: var(--ink); font-weight: 600; }
+.plot .gl { stroke: var(--grid); stroke-width: 1; shape-rendering: crispEdges; }
+.plot .ax { stroke: var(--axis); stroke-width: 1; shape-rendering: crispEdges; }
+.plot .ln { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.plot .s-c1 { stroke: var(--c1); } .plot .s-c0 { stroke: var(--c0); } .plot .s-c0b { stroke: var(--c0b); }
+.plot .f-c1 { fill: var(--c1); } .plot .f-c0 { fill: var(--c0); } .plot .f-c0b { fill: var(--c0b); }
+.plot .wash { fill: var(--c1-wash); }
+.plot .wash0 { fill: var(--c0); fill-opacity: .12; }
+.plot .dot { stroke: var(--bg); stroke-width: 2; }
+.plot .xh { stroke: var(--muted); stroke-width: 1; shape-rendering: crispEdges; }
+.plot .zone { fill: var(--surface); }
+.plot .zone.dead { fill: var(--crit-soft); }
+.plot .zone.none { fill: transparent; }
+.plot .zline { stroke: var(--axis); stroke-width: 1; stroke-dasharray: 3 3; }
+.plot text.zlab { font-size: 11.5px; letter-spacing: .02em; }
+.plot text.zlab.dead { fill: var(--crit); }
+.plot text.ylab { font-size: 11.5px; }
+.plot .fdot { fill: var(--crit); stroke: var(--bg); stroke-width: 1; }
+.plot .strip { fill: var(--surface); }
+.plot text.crit { fill: var(--crit); font-weight: 500; }
+.plot .under { fill: none; stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; stroke-opacity: .45; }
+.plot .leader { stroke: var(--axis); stroke-width: 1; }
+.plot .hit { fill: transparent; cursor: crosshair; }
+.plot .bub { stroke: var(--bg); stroke-width: 2; }
+.seg { display: inline-flex; flex-wrap: wrap; max-width: 100%; padding: 3px; gap: 2px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+@media (max-width: 560px) {
+  .seg.many { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
+  .seg.many button { white-space: normal; line-height: 1.3; }
+}
+.seg button {
+  border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 13px; font-weight: 500;
+  padding: 5px 12px; border-radius: 7px; cursor: pointer; white-space: nowrap;
+}
+.seg button:hover { color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--bg); color: var(--ink); box-shadow: 0 1px 2px rgba(0, 0, 0, .08); }
+
+/* tooltip */
+.tip {
+  position: fixed; z-index: 60; pointer-events: none; min-width: 120px; max-width: 260px;
+  padding: 8px 10px; border-radius: 10px; background: var(--ink); color: var(--bg);
+  box-shadow: var(--shadow); font-size: 12.5px; line-height: 1.45;
+}
+.tip-h { font-size: 11.5px; opacity: .72; margin-bottom: 3px; }
+.tip-r { display: flex; align-items: baseline; gap: 8px; }
+.tip-r strong { font-variant-numeric: tabular-nums; font-weight: 600; }
+.tip-r span { opacity: .8; }
+.tip-k { width: 12px; height: 0; border-top: 2px solid; flex: none; align-self: center; }
+
+/* paper figures keep a white ground in both themes */
+.frame.paper { background: #ffffff; }
+.frame.nopad { padding: 0; overflow: hidden; }
+.frame.paper img { display: block; margin-inline: auto; }
+
+/* BibTeX */
+.bib { border-radius: 14px; background: var(--surface); border: 1px solid var(--line); overflow: hidden; }
+.bib-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 10px 8px 22px; border-bottom: 1px solid var(--line); }
+.bib pre {
+  margin: 0; padding: 18px 22px 20px;
+  font-family: var(--font-mono); font-size: 13px; line-height: 1.65; color: var(--text); overflow-x: auto;
+}
+.copy {
+  height: 32px; padding: 0 12px; display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--muted); font: inherit; font-size: 13px; cursor: pointer;
+}
+.copy:hover { color: var(--ink); border-color: var(--accent-line); }
+.copy .i { width: 14px; height: 14px; }
+
+/* footer */
+.foot { border-top: 1px solid var(--line); }
+.foot-in {
+  max-width: var(--wide); margin-inline: auto; padding: 26px clamp(16px, 4vw, 32px) 36px;
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px 28px; font-size: 14px; color: var(--muted);
+}
+.foot-in nav { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+
+@media (max-width: 600px) {
+  body { font-size: 16px; }
+  .stat .v { font-size: 30px; }
+  .hb-row, .hb-axis { grid-template-columns: minmax(76px, 30%) minmax(0, 1fr); gap: 10px; }
+  .db-row, .db-axis { grid-template-columns: minmax(70px, 26%) minmax(0, 1fr); gap: 10px; }
+  .eq { font-size: 18px; padding: 14px; }
+  .cols-plot { height: 200px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+
+.ae { display: grid; grid-template-columns: minmax(0, 1fr) 44px minmax(0, 1fr); align-items: center; gap: 8px; }
+.ae-arrow { font-size: 26px; color: var(--muted); text-align: center; }
+@media (max-width: 760px) { .ae { grid-template-columns: minmax(0, 1fr); } .ae-arrow { transform: rotate(90deg); } }
+.ae-panel { border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px 18px; background: var(--bg); }
+.ae-panel.ours { border-color: var(--accent-line); background: linear-gradient(var(--accent-soft), var(--bg) 75%); }
+.ae-name { font-weight: 600; color: var(--ink); font-size: 15px; }
+.ae-sub { font-size: 13px; color: var(--muted); }
+.ae svg { display: block; width: 100%; height: auto; margin-top: 8px; }
+.ae .w { fill: var(--c1-soft); stroke: var(--c1); stroke-width: 1.5; }
+.ae .act-full { fill: var(--gold-soft); stroke: var(--gold-line); stroke-width: 1.5; }
+.ae .act-low { fill: var(--c1); }
+.ae .io { fill: var(--surface-2); stroke: var(--axis); stroke-width: 1; }
+.ae .ar { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+.ae .arh { fill: var(--muted); }
+.ae text { font-family: var(--font-body); font-size: 15px; fill: var(--muted); }
+.ae text.big { font-family: var(--font-display); font-style: italic; font-size: 20px; fill: var(--ink); }
+.ae text.eq { font-family: var(--font-display); font-style: italic; font-size: 21px; fill: var(--ink); }
+.ae text.dim { font-family: var(--font-display); font-style: italic; font-size: 15px; fill: var(--muted); }
+.ae text.on { fill: #ffffff; font-family: var(--font-display); font-style: italic; font-size: 16px; }
+
+.er { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 0 10px; }
+.er-y { position: relative; height: 220px; }
+.er-y span { position: absolute; right: 0; transform: translateY(50%); font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.er-plot { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 6px; height: 220px; border-bottom: 1px solid var(--axis); }
+.er-col { position: relative; display: flex; flex-direction: column; min-width: 0; }
+.er-track { position: relative; flex: 1; max-width: 26px; width: 100%; margin: 0 auto; border-radius: 4px 4px 0 0; background: var(--surface-2); }
+.er-bar { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 4px 4px 0 0; background: var(--c1); outline: none; }
+.er-bar:hover, .er-bar:focus-visible { filter: brightness(1.12); }
+.er-bar::after { content: ""; position: absolute; left: -4px; right: -4px; top: -80px; bottom: 0; }
+.er-x { position: absolute; top: 100%; left: 0; right: 0; padding-top: 6px; text-align: center; font-size: 12px; color: var(--muted); }
+.er-xlab { margin: 26px 0 0 54px; text-align: center; font-size: 12px; color: var(--muted); }
+@media (max-width: 600px) { .er-plot { gap: 3px; } .er-y, .er-plot { height: 180px; } }
+.eff td { text-align: center !important; }
+.plain { margin: 0; padding: 0; list-style: none; display: grid; gap: 12px; }
+.plain li { position: relative; padding-left: 20px; }
+.plain li::before { content: ""; position: absolute; left: 2px; top: .72em; width: 6px; height: 6px; border-radius: 50%; background: var(--accent-line); }
+.plain b { color: var(--ink); font-weight: 600; }
+.theory { list-style: none; margin: 18px 0 0; padding: 0; display: grid; gap: 10px; counter-reset: t; }
+.theory li { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 12px; padding: 14px 16px; border-radius: 12px; background: var(--surface); }
+.theory li::before { counter-increment: t; content: counter(t); width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 12.5px; font-weight: 600; color: var(--accent-ink); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent-line); }
+.theory b { color: var(--ink); font-weight: 600; }
+.theory span { color: var(--muted); font-size: 13.5px; }
+.cm { display: grid; grid-template-columns: minmax(0, 350px) minmax(0, 1fr); gap: 20px; align-items: stretch; margin-top: 30px; }
+@media (max-width: 860px) { .cm { grid-template-columns: minmax(0, 1fr); } }
+.cm > .fig { margin: 0; min-width: 0; display: flex; flex-direction: column; }
+.cm > .fig > .frame { flex: 1; }
+.blk { display: block; width: 100%; max-width: 290px; height: auto; margin: 6px auto 0; }
+.blk .a { fill: var(--c1-soft); stroke: var(--c1); stroke-width: 1.2; }
+.blk .b, .blk .attn { fill: url(#cm-hatch); stroke: var(--c1); stroke-width: 1.2; }
+.blk .hz-bg { fill: var(--bg); }
+.blk .hz-ln { stroke: var(--hatch); stroke-width: 2; }
+.blk .s { fill: var(--c1); }
+.blk .io { fill: var(--surface-2); stroke: var(--axis); stroke-width: 1; }
+.blk .op { fill: var(--bg); stroke: var(--muted); stroke-width: 1.2; }
+.blk .opm { stroke: var(--text); stroke-width: 1.4; stroke-linecap: round; fill: none; }
+.blk .silu { fill: var(--gold-soft); stroke: var(--gold-line); stroke-width: 1.2; stroke-dasharray: 2.5 2; }
+.blk .ln { fill: none; stroke: var(--muted); stroke-width: 1.2; stroke-linejoin: round; }
+.blk .ah { fill: var(--muted); }
+.blk text { font-family: var(--font-display); font-style: italic; font-size: 13px; fill: var(--ink); }
+.blk text .sb { font-size: 9.5px; font-style: normal; font-family: var(--font-body); }
+.blk text.on { fill: #ffffff; font-size: 12.5px; }
+.blk text.gold { fill: var(--gold); font-size: 12px; }
+.blk text.up { font-family: var(--font-body); font-style: normal; font-size: 11.5px; fill: var(--text); }
+.blk-key { margin-top: 14px; justify-content: center; }
+.k-s { width: 10px; height: 10px; border-radius: 3px; background: var(--c1); }
+.k-hz { width: 10px; height: 10px; border-radius: 3px; background: repeating-linear-gradient(135deg, var(--hatch) 0 2px, transparent 2px 4.5px); box-shadow: inset 0 0 0 1px var(--c1); }
+.k-silu { width: 10px; height: 10px; border-radius: 50%; background: var(--gold-soft); border: 1.2px dashed var(--gold-line); }
+.metric + .metric { margin-top: 22px; }
+.metric-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; margin-bottom: 10px; font-size: 13px; color: var(--muted); }
+.metric-h b { font-size: 14px; font-weight: 600; color: var(--ink); }
+.cm .hb-row, .cm .hb-axis { grid-template-columns: minmax(84px, 26%) minmax(0, 1fr); gap: 12px; }
+.sizes .tbl[hidden] { display: none; }
+</style>
+<script>(function () { try { var t = localStorage.getItem("zl-theme"); if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t); } catch (e) {} })();</script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 16.5h6"/></symbol>
+  <symbol id="i-ext" viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8"/></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24"><path d="m8.5 8-4.5 4 4.5 4"/><path d="m15.5 8 4.5 4-4.5 4"/><path d="m13.5 5.5-3 13"/></symbol>
+  <symbol id="i-quote" viewBox="0 0 24 24"><path d="M9 7H5v6h4v-6zM19 7h-4v6h4V7z"/><path d="M9 13c0 2.5-1.2 4-3.5 4.5M19 13c0 2.5-1.2 4-3.5 4.5"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10.5 9.4 4.2 2.6-4.2 2.6z"/></symbol>
+  <symbol id="i-slides" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M12 17v4M8 21h8"/></symbol>
+  <symbol id="i-poster" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8.5 7.5h7M8.5 11h7M8.5 14.5h4"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M15 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h3"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6 6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.2A8.2 8.2 0 1 1 9.8 4a6.6 6.6 0 0 0 10.2 10.2z"/></symbol>
+</svg>
+<header class="topbar">
+  <div class="topbar-in">
+    <a class="home" href="../"><svg class="i" aria-hidden="true"><use href="#i-back"/></svg>Ziyue (Alvin) Liu</a>
+    <nav class="toc" aria-label="On this page"><a href="#abstract">Abstract</a><a href="#method">Method</a><a href="#results">Results</a><a href="#citation">Citation</a></nav>
+    <button class="icon-btn" id="theme-toggle" type="button" aria-label="Toggle dark mode">
+      <svg class="i moon" aria-hidden="true"><use href="#i-moon"/></svg><svg class="i sun" aria-hidden="true"><use href="#i-sun"/></svg>
+    </button>
+  </div>
+</header>
+<main id="main">
+
+<section class="col" aria-labelledby="title">
+  <div class="venue"><span class="tag">EMNLP 2025</span><span class="tag oral">Oral</span></div>
+  <h1 class="title" id="title"><span class="name">CoLA</span>: <span class="ac">Co</span>mpute-Efficient Pre-Training of LLMs via <span class="ac">L</span>ow-Rank <span class="ac">A</span>ctivation</h1>
+  <p class="authors">
+    <a class="me" href="../">Ziyue Liu</a><sup>*1</sup>, Ruijie Zhang<sup>*1</sup>, Zhengyang Wang<sup>*1</sup>, Mingsong Yan<sup>1</sup>, Zi Yang<sup>2</sup>, Paul Hovland<sup>3</sup>,
+    Bogdan Nicolae<sup>3</sup>, Franck Cappello<sup>3</sup>, Sui Tang<sup>1</sup>, <a href="https://web.ece.ucsb.edu/~zhengzhang/" target="_blank" rel="noopener">Zheng Zhang</a><sup>1</sup>
+  </p>
+  <p class="affils"><span><sup>1</sup>University of California, Santa Barbara</span><span><sup>2</sup>University at Albany, SUNY</span><span><sup>3</sup>Argonne National Laboratory</span><span><sup>*</sup>Equal contribution</span></p>
+  <div class="actions">
+    <a class="btn primary" href="https://aclanthology.org/2025.emnlp-main.230/" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-file"/></svg>Paper</a>
+    <a class="btn" href="https://github.com/alvin-zyl/CoLA" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-code"/></svg>Code</a>
+    <a class="btn" href="https://us06web.zoom.us/rec/share/w7j_Ng_huVt9Eip-jOsB4cfw2xczpIVjYbKu2SRdbAiMkkxryRPTDqiE_25Hi5I5.S2f836Ct4WhB3B6l?startTime=1762330818000" target="_blank" rel="noopener" title="EMNLP 2025 session recording. The CoLA talk is the third chapter and starts at 14:11."><svg class="i" aria-hidden="true"><use href="#i-play"/></svg>Talk<span class="t">from 14:11</span></a>
+    <a class="btn" href="slides.pdf" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-slides"/></svg>Slides</a>
+    <a class="btn" href="poster.pdf" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-poster"/></svg>Poster</a>
+    <a class="btn" href="#citation"><svg class="i" aria-hidden="true"><use href="#i-quote"/></svg>BibTeX</a>
+  </div>
+  <div class="tldr">
+    <div class="label">In short</div>
+    <p>The activations inside a pre-trained LLM are low-rank, yet every layer computes them at full size. CoLA builds the low rank into the architecture: each linear layer becomes a small auto-encoder. Models come out 2&times; smaller and training takes half the compute, at full-rank perplexity.</p>
+  </div>
+</section>
+
+<div class="sec" style="margin-top:40px">
+<figure class="fig wide" aria-label="A full-size layer next to the CoLA auto-encoder that replaces it">
+  <div class="ae">
+    <div class="ae-panel"><div class="ae-name">Full-size layer</div><div class="ae-sub">the activation is as wide as the layer</div><svg viewBox="0 0 400 250" role="img" aria-label="A full-size layer: input of size d, weight W, full-size activation of size d_ff">
+  <rect class="io" x="20" y="92" width="16" height="66" rx="3"/>
+  <text class="dim" x="28" y="178" text-anchor="middle">d</text>
+  <path class="ar" d="M40 125 H66"/><path class="arh" d="M66 120 L74 125 L66 130 Z"/>
+  <path class="w" d="M78 92 L200 30 L200 220 L78 158 Z"/>
+  <text class="big" x="140" y="132" text-anchor="middle">W</text>
+  <path class="ar" d="M204 125 H236"/><path class="arh" d="M236 120 L244 125 L236 130 Z"/>
+  <rect class="act-full" x="250" y="30" width="30" height="190" rx="4"/>
+  <text class="big" x="265" y="132" text-anchor="middle">&#963;</text>
+  <text class="dim" x="296" y="130">d<tspan dy="4" font-size="11">ff</tspan></text>
+  <text class="eq" x="200" y="246" text-anchor="middle">h = &#963;(Wx)</text>
+</svg></div>
+    <div class="ae-arrow" aria-hidden="true">&#8594;</div>
+    <div class="ae-panel ours"><div class="ae-name">CoLA layer</div><div class="ae-sub">a rank-<i>r</i> bottleneck with the nonlinearity inside</div><svg viewBox="0 0 400 250" role="img" aria-label="A CoLA layer: input of size d, low-rank factor A, activation of rank r, low-rank factor B back to size d_ff">
+  <rect class="io" x="12" y="92" width="16" height="66" rx="3"/>
+  <text class="dim" x="20" y="178" text-anchor="middle">d</text>
+  <path class="ar" d="M32 125 H52"/><path class="arh" d="M52 120 L60 125 L52 130 Z"/>
+  <path class="w" d="M64 92 L150 110 L150 140 L64 158 Z"/>
+  <text class="big" x="102" y="132" text-anchor="middle">A</text>
+  <path class="ar" d="M154 125 H168"/><path class="arh" d="M168 120 L176 125 L168 130 Z"/>
+  <rect class="act-low" x="180" y="110" width="30" height="30" rx="4"/>
+  <text class="on" x="195" y="131" text-anchor="middle">&#963;</text>
+  <text class="dim" x="195" y="160" text-anchor="middle">r</text>
+  <path class="ar" d="M214 125 H228"/><path class="arh" d="M228 120 L236 125 L228 130 Z"/>
+  <path class="w" d="M240 110 L372 30 L372 220 L240 140 Z"/>
+  <text class="big" x="318" y="132" text-anchor="middle">B</text>
+  <text class="dim" x="380" y="130">d<tspan dy="4" font-size="11">ff</tspan></text>
+  <text class="eq" x="200" y="246" text-anchor="middle">h = B&#8201;&#963;(Ax)</text>
+</svg></div>
+  </div>
+  <figcaption>Every linear layer, with or without a nonlinearity after it, becomes an auto-encoder <span class="m">B&#8201;&#963;(Ax)</span> with <span class="m">A</span> of size <span class="m">r &times; d</span> and <span class="m">B</span> of size <span class="m">d<sub>ff</sub> &times; r</span>, so the activation is low-rank throughout training.</figcaption>
+</figure></div>
+
+<section class="col">
+  <div class="stats four">
+    <div class="stat"><div class="v">2&times;</div><div class="l">less training compute than full-rank, at the default rank</div></div>
+    <div class="stat"><div class="v">2&times;</div><div class="l">smaller models, with full-rank perplexity from 60M to 7B</div></div>
+    <div class="stat"><div class="v">1.86&times;</div><div class="l">training throughput on LLaMA-1B, and 1.64&times; at inference</div></div>
+    <div class="stat"><div class="v">&frac23;</div><div class="l">less pre-training memory for LLaMA-7B with CoLA-M, still faster than full-rank</div></div>
+  </div>
+</section>
+
+<section class="sec col abstract" id="abstract" aria-labelledby="abstract-h">
+  <h2 id="abstract-h">Abstract</h2>
+  <p>The <i>full-size</i> MLPs and the projection layers in attention introduce tremendous model sizes of large language models (LLMs), consuming extensive computational resources in pre-training. We empirically observe that the activations of pre-trained LLMs exhibit low-rank property. Motivated by such observations, we propose <b>CoLA</b> and its memory-efficient implementation, <b>CoLA-M</b>, to replace these full-size layers with compute-efficient <b>auto-encoders</b> that naturally enforce low-rank activations throughout training. This fundamental architectural change eliminates the activation redundancy and significantly boosts model capacity and training efficiency. Experiments on LLaMA models with 60 million to 7 billion parameters show that CoLA reduces the computing cost by <b>2&times;</b> and improves training throughput by <b>1.86&times;</b> while maintaining full-rank level performance. CoLA-M further squeezes memory cost without sacrificing throughput, offering a pre-training approach with collectively superior parameter, computing, and memory efficiency. The LLMs produced are also <b>2&times;</b> smaller, enabling faster inference with lower memory cost on resource-constrained platforms.</p>
+</section>
+
+<section class="sec" id="method" aria-labelledby="method-h">
+  <div class="col">
+    <h2 id="method-h">Low-rank activation by construction</h2>
+    <p>In a pre-trained GPT-2, the singular values of the MLP activations fall off quickly: in every block, the rank that keeps 95% of the spectral energy is a small fraction of the full dimension. Full-size layers spend most of their compute producing that redundancy.</p>
+  </div>
+  <div class="wide" style="max-width:52rem"><figure class="fig"><div class="frame"><div class="chart-head"><div><div class="chart-title">Effective rank of the MLP activation in GPT-2 small</div><div class="chart-sub">singular values needed to keep 95% of the spectral energy, per block</div></div><div class="legend"><span><i class="k-box" style="background:var(--c1)"></i>effective rank</span><span><i class="k-box" style="background:var(--surface-2)"></i>full dimension, 3,072</span></div></div><div class="er"><div class="er-y"><span style="bottom:0.00%">0</span><span style="bottom:32.55%">1,000</span><span style="bottom:65.10%">2,000</span><span style="bottom:100.00%">3,072</span></div><div class="er-plot"><div class="er-col"><div class="er-track"><div class="er-bar" style="height:6.51%" tabindex="0" data-tip="{&quot;h&quot;: &quot;Block 1&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;&amp;asymp;200&quot;, &quot;l&quot;: &quot;effective rank&quot;, &quot;k&quot;: &quot;c1&quot;}, {&quot;v&quot;: &quot;3,072&quot;, &quot;l&quot;: &quot;full dimension&quot;}, {&quot;v&quot;: &quot;7%&quot;, &quot;l&quot;: &quot;of the full size&quot;}]}"></div></div><span class="er-x">1</span></div><div class="er-col"><div class="er-track"><div class="er-bar" style="height:7.81%" tabindex="0" data-tip="{&quot;h&quot;: &quot;Block 2&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;&amp;asymp;240&quot;, &quot;l&quot;: &quot;effective rank&quot;, &quot;k&quot;: &quot;c1&quot;}, {&quot;v&quot;: &quot;3,072&quot;, &quot;l&quot;: &quot;full dimension&quot;}, {&quot;v&quot;: &quot;8%&quot;, &quot;l&quot;: &quot;of the full size&quot;}]}"></div></div><span class="er-x">2</span></div><div class="er-col"><div class="er-track"><div class="er-bar" style="height:8.14%" tabindex="0" data-tip="{&quot;h&quot;: &quot;Block 3&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;&amp;asymp;250&quot;, &quot;l&quot;: &quot;effective rank&quot;, &quot;k&quot;: &quot;c1&quot;}, {&quot;v&quot;: &quot;3,072&quot;, &quot;l&quot;: &quot;full dimension&quot;}, {&quot;v&quot;: &quot;8%&quot;, &quot;l&quot;: &quot;of the full size&quot;}]}"></div></div><span class="er-x">3</span></div><div class="er-col"><div class="er-track"><div class="er-bar" style="height:10.42%" tabindex="0" data-tip="{&quot;h&quot;: &quot;Block 4&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;&amp;asymp;320&quot;, &quot;l&quot;: &quot;effective rank&quot;, &quot;k&quot;: &quot;c1&quot;}, {&quot;v&quot;: &quot;3,072&quot;, &quot;l&quot;: &quot;full dimension&quot;}, {&quot;v&quot;: &quot;10%&quot;, &quot;l&quot;: &quot;of the full size&quot;}]}"></div></div><span class="er-x">4</span></div><div class="er-col"><div class="er-track"><div class="er-bar" style="height:12.04%" tabindex="0" data-tip="{&quot;h&quot;: &quot;Block 5&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;&amp;asymp;370&quot;, &quot;l&quot;: &quot;effective rank&quot;, &quot;k&quot;: &quot;c1&quot;}, {&quot;v&quot;: &quot;3,072&quot;, &quot;l&quot;: &quot;full dimension&quot;}, {&quot;v&quot;: &quot;12%&quot;, &quot;l&quot;: &quot;of the full size&quot;}]}"></div></div><span class="er-x">5</span></div><div class="er-col"><div class="er-track"><div class="er-bar" style="height:13.02%" tabindex="0" data-tip="{&quot;h&quot;: &quot;Block 6&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;&amp;asymp;400&quot;, &quot;l&quot;: &quot;effective rank&quot;, &quot;k&quot;: &quot;c1&quot;}, {&quot;v&quot;: &quot;3,072&quot;, &quot;l&quot;: &quot;full dimension&quot;}, {&quot;v&quot;: &quot;13%&quot;, &quot;l&quot;: &quot;of the full size&quot;}]}"></div></div><span class="er-x">6</span></div><div class="er-col"><div class="er-track"><div class="er-bar" style="height:13.02%" tabindex="0" data-tip="{&quot;h&quot;: &quot;Block 7&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;&amp;asymp;400&quot;, &quot;l&quot;: &quot;effective rank&quot;, &quot;k&quot;: &quot;c1&quot;}, {&quot;v&quot;: &quot;3,072&quot;, &quot;l&quot;: &quot;full dimension&quot;}, {&quot;v&quot;: &quot;13%&quot;, &quot;l&quot;: &quot;of the full size&quot;}]}"></div></div><span class="er-x">7</span></div><div class="er-col"><div class="er-track"><div class="er-bar" style="height:13.02%" tabindex="0" data-tip="{&quot;h&quot;: &quot;Block 8&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;&amp;asymp;400&quot;, &quot;l&quot;: &quot;effective rank&quot;, &quot;k&quot;: &quot;c1&quot;}, {&quot;v&quot;: &quot;3,072&quot;, &quot;l&quot;: &quot;full dimension&quot;}, {&quot;v&quot;: &quot;13%&quot;, &quot;l&quot;: &quot;of the full size&quot;}]}"></div></div><span class="er-x">8</span></div><div class="er-col"><div class="er-track"><div class="er-bar" style="height:12.70%" tabindex="0" data-tip="{&quot;h&quot;: &quot;Block 9&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;&amp;asymp;390&quot;, &quot;l&quot;: &quot;effective rank&quot;, &quot;k&quot;: &quot;c1&quot;}, {&quot;v&quot;: &quot;3,072&quot;, &quot;l&quot;: &quot;full dimension&quot;}, {&quot;v&quot;: &quot;13%&quot;, &quot;l&quot;: &quot;of the full size&quot;}]}"></div></div><span class="er-x">9</span></div><div class="er-col"><div class="er-track"><div class="er-bar" style="height:12.04%" tabindex="0" data-tip="{&quot;h&quot;: &quot;Block 10&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;&amp;asymp;370&quot;, &quot;l&quot;: &quot;effective rank&quot;, &quot;k&quot;: &quot;c1&quot;}, {&quot;v&quot;: &quot;3,072&quot;, &quot;l&quot;: &quot;full dimension&quot;}, {&quot;v&quot;: &quot;12%&quot;, &quot;l&quot;: &quot;of the full size&quot;}]}"></div></div><span class="er-x">10</span></div><div class="er-col"><div class="er-track"><div class="er-bar" style="height:10.09%" tabindex="0" data-tip="{&quot;h&quot;: &quot;Block 11&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;&amp;asymp;310&quot;, &quot;l&quot;: &quot;effective rank&quot;, &quot;k&quot;: &quot;c1&quot;}, {&quot;v&quot;: &quot;3,072&quot;, &quot;l&quot;: &quot;full dimension&quot;}, {&quot;v&quot;: &quot;10%&quot;, &quot;l&quot;: &quot;of the full size&quot;}]}"></div></div><span class="er-x">11</span></div><div class="er-col"><div class="er-track"><div class="er-bar" style="height:7.16%" tabindex="0" data-tip="{&quot;h&quot;: &quot;Block 12&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;&amp;asymp;220&quot;, &quot;l&quot;: &quot;effective rank&quot;, &quot;k&quot;: &quot;c1&quot;}, {&quot;v&quot;: &quot;3,072&quot;, &quot;l&quot;: &quot;full dimension&quot;}, {&quot;v&quot;: &quot;7%&quot;, &quot;l&quot;: &quot;of the full size&quot;}]}"></div></div><span class="er-x">12</span></div></div></div><div class="er-xlab">decoder block</div><details class="data-view"><summary>Show the numbers</summary><div class="tbl"><table class="t"><thead><tr><th scope="col">Block</th><th scope="col">1</th><th scope="col">2</th><th scope="col">3</th><th scope="col">4</th><th scope="col">5</th><th scope="col">6</th><th scope="col">7</th><th scope="col">8</th><th scope="col">9</th><th scope="col">10</th><th scope="col">11</th><th scope="col">12</th></tr></thead><tbody><tr><th scope="row">Effective rank</th><td>&asymp;200</td><td>&asymp;240</td><td>&asymp;250</td><td>&asymp;320</td><td>&asymp;370</td><td>&asymp;400</td><td>&asymp;400</td><td>&asymp;400</td><td>&asymp;390</td><td>&asymp;370</td><td>&asymp;310</td><td>&asymp;220</td></tr></tbody></table></div></details></div><figcaption>In every block, about 7% to 13% of the 3,072 activation dimensions hold 95% of the energy. Activations measured on WikiText-2.</figcaption></figure></div>
+  <div class="col" style="margin-top:28px">
+    <p>CoLA replaces each linear layer with <span class="m">h = B&#8201;&#963;(Ax)</span>, where <span class="m">r</span> is well below both input and output sizes. The nonlinearity sits between the two factors, so the activation itself stays low-rank. That differs from factorizing <span class="m">W</span> into <span class="m">BA</span>, which compresses parameters but keeps a full-size activation. All MLP layers and all attention projections become CoLA layers; attention itself, residual connections and the gated product stay as they are.</p>
+    <p>With the default rank <span class="m">r = d/4</span>, a decoder layer needs about half the compute of full-rank training, and CoLA saves compute for any <span class="m">r</span> below about <span class="m">0.62d</span>. The other efficient pre-training methods each cover only part of the picture:</p>
+    <figure class="fig" style="margin-top:10px"><div class="tbl"><table class="t eff"><thead><tr><th scope="col"></th><th scope="col">CoLA(-M)</th><th scope="col">SLTrain</th><th scope="col">GaLore</th><th scope="col">ReLoRA</th></tr></thead><tbody><tr><th scope="row">Fewer parameters</th><td><span class="yes" aria-label="yes">&#10003;</span></td><td><span class="yes" aria-label="yes">&#10003;</span></td><td><span class="no" aria-label="no">&#8211;</span></td><td><span class="no" aria-label="no">&#8211;</span></td></tr><tr><th scope="row">Less compute, training</th><td><span class="yes" aria-label="yes">&#10003;</span></td><td><span class="no" aria-label="no">&#8211;</span></td><td><span class="no" aria-label="no">&#8211;</span></td><td><span class="yes" aria-label="yes">&#10003;</span></td></tr><tr><th scope="row">Less compute, inference</th><td><span class="yes" aria-label="yes">&#10003;</span></td><td><span class="no" aria-label="no">&#8211;</span></td><td><span class="no" aria-label="no">&#8211;</span></td><td><span class="no" aria-label="no">&#8211;</span></td></tr><tr><th scope="row">Less memory, training</th><td><span class="yes" aria-label="yes">&#10003;</span></td><td><span class="yes" aria-label="yes">&#10003;</span></td><td><span class="yes" aria-label="yes">&#10003;</span></td><td><span class="yes" aria-label="yes">&#10003;</span></td></tr><tr><th scope="row">Less memory, inference</th><td><span class="yes" aria-label="yes">&#10003;</span></td><td><span class="yes" aria-label="yes">&#10003;</span></td><td><span class="no" aria-label="no">&#8211;</span></td><td><span class="no" aria-label="no">&#8211;</span></td></tr><tr><th scope="row">Higher throughput, training</th><td><span class="yes" aria-label="yes">&#10003;</span></td><td><span class="no" aria-label="no">&#8211;</span></td><td><span class="no" aria-label="no">&#8211;</span></td><td><span class="no" aria-label="no">&#8211;</span></td></tr><tr><th scope="row">Higher throughput, inference</th><td><span class="yes" aria-label="yes">&#10003;</span></td><td><span class="no" aria-label="no">&#8211;</span></td><td><span class="no" aria-label="no">&#8211;</span></td><td><span class="no" aria-label="no">&#8211;</span></td></tr></tbody></table></div><figcaption>Which kinds of efficiency each method provides.</figcaption></figure>
+    <h3>What the theory says</h3>
+    <ol class="theory">
+      <li><div><b>Never worse than plain low rank.</b> A CoLA layer approximates a layer at least as well as a standard low-rank layer of the same rank. <span>Proposition 3.1</span></div></li>
+      <li><div><b>Strictly better under data-dependent conditions.</b> The nonlinearity in the middle lets it beat the standard low-rank layer. <span>Theorem 3.3</span></div></li>
+      <li><div><b>Benefits from low effective rank.</b> Its error bound depends on the output's effective rank, which is small in practice. <span>Theorem 3.4</span></div></li>
+    </ol>
+    <h3>CoLA-M: save only the small activations</h3>
+    <p>At large batch sizes, activations can take most of the memory. Plain gradient checkpointing keeps each block's input and recomputes the whole block in the backward pass, almost a full forward pass. CoLA-M keeps the low-rank activations instead, and recomputes only the up-projections and self-attention, about half of a CoLA forward pass.</p>
+    <p>At a similar memory saving on LLaMA-1B, that is 4.6&times; less recomputation than plain checkpointing. CoLA-M needs a quarter of full-rank training's memory at 1B and a third at 7B, and it still trains faster.</p>
+  </div>
+  <div class="wide cm">
+    <figure class="fig"><div class="frame"><div class="chart-head"><div><div class="chart-title">One CoLA-M decoder block</div><div class="chart-sub">LLaMA-style, read from top to bottom</div></div></div><svg class="blk" viewBox="0 0 250 572" role="img" aria-label="A CoLA decoder block. Queries, keys, values, the attention output and the three MLP projections are each an A, sigma, B auto-encoder. CoLA-M saves the small sigma outputs and recomputes the B projections and self-attention during the backward pass."><defs><pattern id="cm-hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect class="hz-bg" width="5" height="5"/><line class="hz-ln" x1="0" y1="0" x2="0" y2="5"/></pattern></defs><rect class="io" x="118" y="6" width="64" height="24" rx="6"/><text x="150" y="22.5" text-anchor="middle">h<tspan class="sb" dy="3">l&#8722;1</tspan></text><path class="ln" d="M150 30 V46 M80 46 H220 M80 46 V54 M150 46 V54 M220 46 V54"/><path class="a" d="M52.0 54 L108.0 54 L94.0 72 L66.0 72 Z"/><text x="80" y="67.5" text-anchor="middle">A<tspan class="sb" dy="3">q</tspan></text><path class="ln" d="M80 72 V80"/><rect class="s" x="71" y="80" width="18" height="18" rx="4"/><text class="on" x="80" y="93" text-anchor="middle">&#963;</text><path class="ln" d="M80 98 V106"/><path class="b" d="M66.0 106 L94.0 106 L108.0 124 L52.0 124 Z"/><text x="80" y="119.5" text-anchor="middle">B<tspan class="sb" dy="3">q</tspan></text><path class="a" d="M122.0 54 L178.0 54 L164.0 72 L136.0 72 Z"/><text x="150" y="67.5" text-anchor="middle">A<tspan class="sb" dy="3">k</tspan></text><path class="ln" d="M150 72 V80"/><rect class="s" x="141" y="80" width="18" height="18" rx="4"/><text class="on" x="150" y="93" text-anchor="middle">&#963;</text><path class="ln" d="M150 98 V106"/><path class="b" d="M136.0 106 L164.0 106 L178.0 124 L122.0 124 Z"/><text x="150" y="119.5" text-anchor="middle">B<tspan class="sb" dy="3">k</tspan></text><path class="a" d="M192.0 54 L248.0 54 L234.0 72 L206.0 72 Z"/><text x="220" y="67.5" text-anchor="middle">A<tspan class="sb" dy="3">v</tspan></text><path class="ln" d="M220 72 V80"/><rect class="s" x="211" y="80" width="18" height="18" rx="4"/><text class="on" x="220" y="93" text-anchor="middle">&#963;</text><path class="ln" d="M220 98 V106"/><path class="b" d="M206.0 106 L234.0 106 L248.0 124 L192.0 124 Z"/><text x="220" y="119.5" text-anchor="middle">B<tspan class="sb" dy="3">v</tspan></text><path class="ln" d="M80 124 V138 M150 124 V138 M220 124 V138"/><rect class="attn" x="62" y="138" width="176" height="24" rx="6"/><text class="up" x="150" y="154.5" text-anchor="middle">self-attention</text><path class="ln" d="M150 162 V172"/><path class="a" d="M122.0 172 L178.0 172 L164.0 190 L136.0 190 Z"/><text x="150" y="185.5" text-anchor="middle">A<tspan class="sb" dy="3">o</tspan></text><path class="ln" d="M150 190 V198"/><rect class="s" x="141" y="198" width="18" height="18" rx="4"/><text class="on" x="150" y="211" text-anchor="middle">&#963;</text><path class="ln" d="M150 216 V224"/><path class="b" d="M136.0 224 L164.0 224 L178.0 242 L122.0 242 Z"/><text x="150" y="237.5" text-anchor="middle">B<tspan class="sb" dy="3">o</tspan></text><path class="ln" d="M150 242 V254"/><circle class="op" cx="150" cy="262" r="8"/><path class="opm" d="M145.5 262 H154.5 M150 257.5 V266.5"/><path class="ln" d="M150 38 H24 V262 H136"/><path class="ah" d="M136 258.5 L142 262 L136 265.5 Z"/><path class="ln" d="M150 270 V286 M110 286 H190 M110 286 V296 M190 286 V296"/><path class="a" d="M82.0 296 L138.0 296 L124.0 314 L96.0 314 Z"/><text x="110" y="309.5" text-anchor="middle">A<tspan class="sb" dy="3">gate</tspan></text><path class="ln" d="M110 314 V322"/><rect class="s" x="101" y="322" width="18" height="18" rx="4"/><text class="on" x="110" y="335" text-anchor="middle">&#963;</text><path class="ln" d="M110 340 V348"/><path class="b" d="M96.0 348 L124.0 348 L138.0 366 L82.0 366 Z"/><text x="110" y="361.5" text-anchor="middle">B<tspan class="sb" dy="3">gate</tspan></text><path class="a" d="M162.0 296 L218.0 296 L204.0 314 L176.0 314 Z"/><text x="190" y="309.5" text-anchor="middle">A<tspan class="sb" dy="3">up</tspan></text><path class="ln" d="M190 314 V322"/><rect class="s" x="181" y="322" width="18" height="18" rx="4"/><text class="on" x="190" y="335" text-anchor="middle">&#963;</text><path class="ln" d="M190 340 V348"/><path class="b" d="M176.0 348 L204.0 348 L218.0 366 L162.0 366 Z"/><text x="190" y="361.5" text-anchor="middle">B<tspan class="sb" dy="3">up</tspan></text><path class="ln" d="M110 366 V376"/><circle class="silu" cx="110" cy="384" r="8"/><text class="gold" x="110" y="388" text-anchor="middle">&#963;</text><path class="ln" d="M110 392 V414 H136 M190 366 V414 H164"/><path class="ah" d="M136 410.5 L142 414 L136 417.5 Z"/><path class="ah" d="M164 410.5 L158 414 L164 417.5 Z"/><circle class="op" cx="150" cy="414" r="8"/><path class="opm" d="M146.7 410.7 L153.3 417.3 M153.3 410.7 L146.7 417.3"/><path class="ln" d="M150 422 V434"/><path class="a" d="M122.0 434 L178.0 434 L164.0 452 L136.0 452 Z"/><text x="150" y="447.5" text-anchor="middle">A<tspan class="sb" dy="3">down</tspan></text><path class="ln" d="M150 452 V460"/><rect class="s" x="141" y="460" width="18" height="18" rx="4"/><text class="on" x="150" y="473" text-anchor="middle">&#963;</text><path class="ln" d="M150 478 V486"/><path class="b" d="M136.0 486 L164.0 486 L178.0 504 L122.0 504 Z"/><text x="150" y="499.5" text-anchor="middle">B<tspan class="sb" dy="3">down</tspan></text><path class="ln" d="M150 504 V514"/><circle class="op" cx="150" cy="522" r="8"/><path class="opm" d="M145.5 522 H154.5 M150 517.5 V526.5"/><path class="ln" d="M150 278 H24 V522 H136"/><path class="ah" d="M136 518.5 L142 522 L136 525.5 Z"/><path class="ln" d="M150 530 V542"/><rect class="io" x="118" y="542" width="64" height="24" rx="6"/><text x="150" y="558.5" text-anchor="middle">h<tspan class="sb" dy="3">l</tspan></text></svg><div class="legend blk-key"><span><i class="k-s"></i>low-rank activation, saved</span><span><i class="k-hz"></i>recomputed in the backward pass</span><span><i class="k-silu"></i>full-size SiLU</span></div></div></figure>
+    <figure class="fig" data-switch><div class="frame"><div class="chart-head"><div><div class="chart-title">CoLA-M against full-rank training</div><div class="chart-sub">one H100 94GB; Vanilla GCP is full-rank training with plain gradient checkpointing</div></div><div class="seg" role="group" aria-label="Model"><button type="button" data-key="1b" aria-pressed="true">LLaMA-1B</button><button type="button" data-key="7b" aria-pressed="false">LLaMA-7B</button></div></div><div data-pane="1b"><div class="metric"><div class="metric-h"><b>Memory</b><span>GB, lower is better</span></div><div class="hbw" style="--room:58px"><div class="hb"><div class="hb-row"><div class="hb-lab">Full-rank</div><div class="hb-track" style="--w:77.60%"><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;Full-rank, LLaMA-1B, batch 64&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;69.84&quot;, &quot;l&quot;: &quot;memory, GB&quot;}]}"></div><div class="hb-val">69.84</div></div></div><div class="hb-row"><div class="hb-lab">Vanilla GCP</div><div class="hb-track" style="--w:16.54%"><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;Vanilla GCP, LLaMA-1B, batch 64&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;14.89&quot;, &quot;l&quot;: &quot;memory, GB&quot;}]}"></div><div class="hb-val">14.89</div></div></div><div class="hb-row hl"><div class="hb-lab">CoLA</div><div class="hb-track" style="--w:73.84%"><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;CoLA, LLaMA-1B, batch 64&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;66.46&quot;, &quot;l&quot;: &quot;memory, GB&quot;}]}"></div><div class="hb-val">66.46</div></div></div><div class="hb-row hl"><div class="hb-lab">CoLA-M</div><div class="hb-track" style="--w:19.26%"><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;CoLA-M, LLaMA-1B, batch 64&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;17.33&quot;, &quot;l&quot;: &quot;memory, GB&quot;}]}"></div><div class="hb-val">17.33</div></div></div></div><div class="hb-axis"><div></div><div class="hb-ticks"><span style="left:0.00%">0</span><span style="left:33.33%">30</span><span style="left:66.67%">60</span><span style="left:100.00%">90</span></div></div></div></div><div class="metric"><div class="metric-h"><b>Compute</b><span>FLOPs relative to full-rank, lower is better</span></div><div class="hbw" style="--room:58px"><div class="hb"><div class="hb-row"><div class="hb-lab">Full-rank</div><div class="hb-track" style="--w:50.00%"><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;Full-rank, LLaMA-1B, batch 64&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;1.00&amp;times;&quot;, &quot;l&quot;: &quot;compute, FLOPs relative to full-rank&quot;}]}"></div><div class="hb-val">1.00&times;</div></div></div><div class="hb-row"><div class="hb-lab">Vanilla GCP</div><div class="hb-track" style="--w:84.00%"><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;Vanilla GCP, LLaMA-1B, batch 64&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;1.68&amp;times;&quot;, &quot;l&quot;: &quot;compute, FLOPs relative to full-rank&quot;}]}"></div><div class="hb-val">1.68&times;</div></div></div><div class="hb-row hl"><div class="hb-lab">CoLA</div><div class="hb-track" style="--w:20.00%"><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;CoLA, LLaMA-1B, batch 64&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;0.40&amp;times;&quot;, &quot;l&quot;: &quot;compute, FLOPs relative to full-rank&quot;}]}"></div><div class="hb-val">0.40&times;</div></div></div><div class="hb-row hl"><div class="hb-lab">CoLA-M</div><div class="hb-track" style="--w:27.50%"><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;CoLA-M, LLaMA-1B, batch 64&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;0.55&amp;times;&quot;, &quot;l&quot;: &quot;compute, FLOPs relative to full-rank&quot;}]}"></div><div class="hb-val">0.55&times;</div></div></div></div><div class="hb-axis"><div></div><div class="hb-ticks"><span style="left:0.00%">0</span><span style="left:25.00%">0.5</span><span style="left:50.00%">1</span><span style="left:75.00%">1.5</span><span style="left:100.00%">2</span></div></div></div></div><div class="metric"><div class="metric-h"><b>Throughput</b><span>tokens per second, higher is better</span></div><div class="hbw" style="--room:58px"><div class="hb"><div class="hb-row"><div class="hb-lab">Full-rank</div><div class="hb-track" style="--w:49.46%"><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;Full-rank, LLaMA-1B, batch 64&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;12,365&quot;, &quot;l&quot;: &quot;throughput, tokens per second&quot;}]}"></div><div class="hb-val">12,365</div></div></div><div class="hb-row"><div class="hb-lab">Vanilla GCP</div><div class="hb-track" style="--w:35.20%"><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;Vanilla GCP, LLaMA-1B, batch 64&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;8,799&quot;, &quot;l&quot;: &quot;throughput, tokens per second&quot;}]}"></div><div class="hb-val">8,799</div></div></div><div class="hb-row hl"><div class="hb-lab">CoLA</div><div class="hb-track" style="--w:91.92%"><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;CoLA, LLaMA-1B, batch 64&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;22,979&quot;, &quot;l&quot;: &quot;throughput, tokens per second&quot;}]}"></div><div class="hb-val">22,979</div></div></div><div class="hb-row hl"><div class="hb-lab">CoLA-M</div><div class="hb-track" style="--w:66.47%"><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;CoLA-M, LLaMA-1B, batch 64&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;16,617&quot;, &quot;l&quot;: &quot;throughput, tokens per second&quot;}]}"></div><div class="hb-val">16,617</div></div></div></div><div class="hb-axis"><div></div><div class="hb-ticks"><span style="left:0.00%">0</span><span style="left:40.00%">10k</span><span style="left:80.00%">20k</span></div></div></div></div></div><div data-pane="7b" hidden><div class="metric"><div class="metric-h"><b>Memory</b><span>GB, lower is better</span></div><div class="hbw" style="--room:58px"><div class="hb"><div class="hb-row"><div class="hb-lab">Full-rank</div><div class="hb-track" style="--w:94.38%"><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;Full-rank, LLaMA-7B, batch 16&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;84.94&quot;, &quot;l&quot;: &quot;memory, GB&quot;}]}"></div><div class="hb-val">84.94</div></div></div><div class="hb-row"><div class="hb-lab">Vanilla GCP</div><div class="hb-track" style="--w:58.32%"><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;Vanilla GCP, LLaMA-7B, batch 16&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;52.49&quot;, &quot;l&quot;: &quot;memory, GB&quot;}]}"></div><div class="hb-val">52.49</div></div></div><div class="hb-row hl"><div class="hb-lab">CoLA</div><div class="hb-track" style="--w:61.69%"><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;CoLA, LLaMA-7B, batch 16&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;55.52&quot;, &quot;l&quot;: &quot;memory, GB&quot;}]}"></div><div class="hb-val">55.52</div></div></div><div class="hb-row hl"><div class="hb-lab">CoLA-M</div><div class="hb-track" style="--w:29.80%"><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;CoLA-M, LLaMA-7B, batch 16&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;26.82&quot;, &quot;l&quot;: &quot;memory, GB&quot;}]}"></div><div class="hb-val">26.82</div></div></div></div><div class="hb-axis"><div></div><div class="hb-ticks"><span style="left:0.00%">0</span><span style="left:33.33%">30</span><span style="left:66.67%">60</span><span style="left:100.00%">90</span></div></div></div></div><div class="metric"><div class="metric-h"><b>Compute</b><span>FLOPs relative to full-rank, lower is better</span></div><div class="hbw" style="--room:58px"><div class="hb"><div class="hb-row"><div class="hb-lab">Full-rank</div><div class="hb-track" style="--w:50.00%"><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;Full-rank, LLaMA-7B, batch 16&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;1.00&amp;times;&quot;, &quot;l&quot;: &quot;compute, FLOPs relative to full-rank&quot;}]}"></div><div class="hb-val">1.00&times;</div></div></div><div class="hb-row"><div class="hb-lab">Vanilla GCP</div><div class="hb-track" style="--w:83.50%"><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;Vanilla GCP, LLaMA-7B, batch 16&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;1.67&amp;times;&quot;, &quot;l&quot;: &quot;compute, FLOPs relative to full-rank&quot;}]}"></div><div class="hb-val">1.67&times;</div></div></div><div class="hb-row hl"><div class="hb-lab">CoLA</div><div class="hb-track" style="--w:20.00%"><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;CoLA, LLaMA-7B, batch 16&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;0.40&amp;times;&quot;, &quot;l&quot;: &quot;compute, FLOPs relative to full-rank&quot;}]}"></div><div class="hb-val">0.40&times;</div></div></div><div class="hb-row hl"><div class="hb-lab">CoLA-M</div><div class="hb-track" style="--w:27.00%"><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;CoLA-M, LLaMA-7B, batch 16&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;0.54&amp;times;&quot;, &quot;l&quot;: &quot;compute, FLOPs relative to full-rank&quot;}]}"></div><div class="hb-val">0.54&times;</div></div></div></div><div class="hb-axis"><div></div><div class="hb-ticks"><span style="left:0.00%">0</span><span style="left:25.00%">0.5</span><span style="left:50.00%">1</span><span style="left:75.00%">1.5</span><span style="left:100.00%">2</span></div></div></div></div><div class="metric"><div class="metric-h"><b>Throughput</b><span>tokens per second, higher is better</span></div><div class="hbw" style="--room:58px"><div class="hb"><div class="hb-row"><div class="hb-lab">Full-rank</div><div class="hb-track" style="--w:58.10%"><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;Full-rank, LLaMA-7B, batch 16&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;5,810&quot;, &quot;l&quot;: &quot;throughput, tokens per second&quot;}]}"></div><div class="hb-val">5,810</div></div></div><div class="hb-row"><div class="hb-lab">Vanilla GCP</div><div class="hb-track" style="--w:43.57%"><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;Vanilla GCP, LLaMA-7B, batch 16&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;4,357&quot;, &quot;l&quot;: &quot;throughput, tokens per second&quot;}]}"></div><div class="hb-val">4,357</div></div></div><div class="hb-row hl"><div class="hb-lab">CoLA</div><div class="hb-track" style="--w:96.38%"><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;CoLA, LLaMA-7B, batch 16&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;9,638&quot;, &quot;l&quot;: &quot;throughput, tokens per second&quot;}]}"></div><div class="hb-val">9,638</div></div></div><div class="hb-row hl"><div class="hb-lab">CoLA-M</div><div class="hb-track" style="--w:70.26%"><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;CoLA-M, LLaMA-7B, batch 16&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;7,026&quot;, &quot;l&quot;: &quot;throughput, tokens per second&quot;}]}"></div><div class="hb-val">7,026</div></div></div></div><div class="hb-axis"><div></div><div class="hb-ticks"><span style="left:0.00%">0</span><span style="left:50.00%">5k</span><span style="left:100.00%">10k</span></div></div></div></div></div></div></figure>
+  </div>
+</section>
+
+<section class="sec" id="results" aria-labelledby="results-h">
+  <div class="col">
+    <h2 id="results-h">Results</h2>
+    <p>LLaMA models from 60M to 7B parameters pre-trained on C4 with no data repetition, following the exact setup of GaLore and SLTrain, plus BERT-Large and an over-trained LLaMA-350M.</p>
+    <h3>Smallest model, full-rank perplexity</h3>
+    <p>At every size CoLA has the fewest parameters and the least memory, and its perplexity is on par with full-rank training: 15.52 against 15.56 at 1B.</p>
+  </div>
+  <figure class="fig wide" data-chart="bubble"><div class="frame"><div class="chart-head"><div><div class="chart-title">LLaMA-1B: perplexity, compute and model size</div><div class="chart-sub">bubble area is the number of parameters</div></div><div class="legend"><span><i class="k-dot" style="background:var(--c1)"></i>CoLA, 609M</span><span><i class="k-dot" style="background:var(--c0)"></i>others, 646M to 1,339M</span></div></div><div class="plot" role="img" aria-label="LLaMA-1B: validation perplexity against training compute relative to full-rank, with bubble area for model size. CoLA uses about 0.4 times the compute with the smallest model and the lowest perplexity."></div><details class="data-view"><summary>Show the numbers</summary><div class="tbl"><table class="t"><thead><tr><th scope="col">Method</th><th scope="col">Perplexity</th><th scope="col">Compute</th><th scope="col">Parameters</th></tr></thead><tbody><tr><th scope="row">CoLA</th><td>15.52</td><td>0.41&times;</td><td>609M</td></tr><tr><th scope="row">Full-rank</th><td>15.56</td><td>1.00&times;</td><td>1,339M</td></tr><tr><th scope="row">ReLoRA</th><td>18.33</td><td>1.06&times;</td><td>1,339M</td></tr><tr><th scope="row">GaLore</th><td>15.64</td><td>2.31&times;</td><td>1,339M</td></tr><tr><th scope="row">SLTrain</th><td>16.14</td><td>2.96&times;</td><td>646M</td></tr></tbody></table></div></details></div><figcaption>Compute is the paper's per-step estimate for one decoder layer with a 256-token batch. SLTrain and GaLore spend extra compute on rebuilding weights and projecting gradients, so they sit above full-rank training.</figcaption><script type="application/json">{"aria":"LLaMA-1B: validation perplexity against training compute relative to full-rank, with bubble area for model size. CoLA uses about 0.4 times the compute with the smallest model and the lowest perplexity.","x":{"min":0,"max":3.3,"ticks":[0,0.5,1,1.5,2,2.5,3],"label":"compute per training step, relative to full-rank"},"y":{"min":15,"max":19,"ticks":[15,16,17,18,19],"fmt":0,"label":"validation perplexity"},"pts":[{"name":"CoLA","x":0.41,"y":15.52,"size":609,"k":"c1","lab":[0,-1,"middle"]},{"name":"Full-rank","x":1.0,"y":15.56,"size":1339,"k":"c0","lab":[0,-1,"middle"]},{"name":"ReLoRA","x":1.06,"y":18.33,"size":1339,"k":"c0","lab":[0,1,"middle"]},{"name":"GaLore","x":2.31,"y":15.64,"size":1339,"k":"c0","lab":[0,-1,"middle"]},{"name":"SLTrain","x":2.96,"y":16.14,"size":646,"k":"c0","lab":[0,-1,"middle"]}],"rMax":30}</script></figure>
+  <div class="col"><figure class="fig" data-switch><div class="frame"><div class="chart-head"><div><div class="chart-title">Compute-optimal pre-training on C4</div><div class="chart-sub">same setup as GaLore and SLTrain</div></div><div class="seg" role="group" aria-label="Model size"><button type="button" data-key="60M" aria-pressed="false">60M</button><button type="button" data-key="130M" aria-pressed="false">130M</button><button type="button" data-key="350M" aria-pressed="false">350M</button><button type="button" data-key="1B" aria-pressed="true">1B</button></div></div><div data-pane="60M" hidden><div class="tbl"><table class="t"><thead><tr><th scope="col">Method</th><th scope="col">Perplexity</th><th scope="col">Parameters (M)</th><th scope="col">Memory (GB)</th></tr></thead><tbody><tr><th scope="row">Full-rank</th><td>34.06</td><td>58</td><td>0.43</td></tr><tr><th scope="row">ReLoRA</th><td>37.04</td><td>58</td><td>0.37</td></tr><tr><th scope="row">GaLore</th><td>34.88</td><td>58</td><td>0.36</td></tr><tr><th scope="row">SLTrain</th><td>34.15</td><td>44</td><td>0.32</td></tr><tr class="ours"><th scope="row">CoLA</th><td><span class="best">34.04</span></td><td>43</td><td>0.32</td></tr></tbody></table></div><p class="note" style="margin:10px 0 0">Rank / width 128 / 512, 1.1B training tokens. Memory counts weights, gradients and optimizer states in BF16.</p></div><div data-pane="130M" hidden><div class="tbl"><table class="t"><thead><tr><th scope="col">Method</th><th scope="col">Perplexity</th><th scope="col">Parameters (M)</th><th scope="col">Memory (GB)</th></tr></thead><tbody><tr><th scope="row">Full-rank</th><td><span class="best">24.36</span></td><td>134</td><td>1.00</td></tr><tr><th scope="row">ReLoRA</th><td>29.37</td><td>134</td><td>0.86</td></tr><tr><th scope="row">GaLore</th><td>25.36</td><td>134</td><td>0.79</td></tr><tr><th scope="row">SLTrain</th><td>26.04</td><td>97</td><td>0.72</td></tr><tr class="ours"><th scope="row">CoLA</th><td>24.48</td><td>94</td><td>0.70</td></tr></tbody></table></div><p class="note" style="margin:10px 0 0">Rank / width 256 / 768, 2.2B training tokens. Memory counts weights, gradients and optimizer states in BF16.</p></div><div data-pane="350M" hidden><div class="tbl"><table class="t"><thead><tr><th scope="col">Method</th><th scope="col">Perplexity</th><th scope="col">Parameters (M)</th><th scope="col">Memory (GB)</th></tr></thead><tbody><tr><th scope="row">Full-rank</th><td><span class="best">18.80</span></td><td>368</td><td>2.74</td></tr><tr><th scope="row">ReLoRA</th><td>29.08</td><td>368</td><td>1.94</td></tr><tr><th scope="row">GaLore</th><td>18.95</td><td>368</td><td>1.90</td></tr><tr><th scope="row">SLTrain</th><td>19.42</td><td>194</td><td>1.45</td></tr><tr class="ours"><th scope="row">CoLA</th><td>19.40</td><td>185</td><td>1.38</td></tr></tbody></table></div><p class="note" style="margin:10px 0 0">Rank / width 256 / 1024, 6.4B training tokens. Memory counts weights, gradients and optimizer states in BF16.</p></div><div data-pane="1B"><div class="tbl"><table class="t"><thead><tr><th scope="col">Method</th><th scope="col">Perplexity</th><th scope="col">Parameters (M)</th><th scope="col">Memory (GB)</th></tr></thead><tbody><tr><th scope="row">Full-rank</th><td>15.56</td><td>1,339</td><td>9.98</td></tr><tr><th scope="row">ReLoRA</th><td>18.33</td><td>1,339</td><td>6.79</td></tr><tr><th scope="row">GaLore</th><td>15.64</td><td>1,339</td><td>6.60</td></tr><tr><th scope="row">SLTrain</th><td>16.14</td><td>646</td><td>4.81</td></tr><tr class="ours"><th scope="row">CoLA</th><td><span class="best">15.52</span></td><td>609</td><td>4.54</td></tr></tbody></table></div><p class="note" style="margin:10px 0 0">Rank / width 512 / 2048, 13.1B training tokens. Memory counts weights, gradients and optimizer states in BF16.</p></div></div></figure></div>
+  <div class="col">
+    <h3>LLaMA-7B with a third of the memory</h3>
+    <p>At 150k steps, CoLA-M reaches a perplexity of 12.73 with 26.8 GB of memory. 8-bit Adam and 8-bit GaLore stay around 14.6 while using 65 to 73 GB.</p>
+  </div>
+  <figure class="fig wide" data-chart="line"><div class="frame"><div class="chart-head"><div><div class="chart-title">LLaMA-7B on C4</div><div class="chart-sub">memory for each method in the legend</div></div><div class="legend"><span><i class="k-line" style="border-color:var(--c1)"></i>CoLA-M, 26.8 GB</span><span><i class="k-line" style="border-color:var(--c0)"></i>8-bit GaLore, 65.2 GB</span><span><i class="k-line" style="border-color:var(--c0b)"></i>8-bit Adam, 72.6 GB</span></div></div><div class="plot" role="img" aria-label="LLaMA-7B validation perplexity over 150 thousand steps. CoLA-M reaches 12.73, against 14.61 for 8-bit Adam and 14.65 for 8-bit GaLore, while using 26.8 GB of memory instead of 65 to 73 GB."></div><details class="data-view"><summary>Show the numbers</summary><div class="tbl"><table class="t"><thead><tr><th scope="col">Method</th><th scope="col">Memory (GB)</th><th scope="col">10k</th><th scope="col">40k</th><th scope="col">80k</th><th scope="col">120k</th><th scope="col">150k</th></tr></thead><tbody><tr><th scope="row">8-bit Adam</th><td>72.59</td><td>n/a</td><td>18.09</td><td>15.47</td><td>14.83</td><td>14.61</td></tr><tr><th scope="row">8-bit GaLore</th><td>65.16</td><td>26.87</td><td>17.94</td><td>15.39</td><td>14.95</td><td>14.65</td></tr><tr><th scope="row">SLTrain</th><td>60.91</td><td>27.59</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td></tr><tr class="ours"><th scope="row">CoLA-M</th><td>26.82</td><td>22.76</td><td>16.21</td><td>13.82</td><td>13.09</td><td>12.73</td></tr></tbody></table></div></details></div><figcaption>8-bit Adam and GaLore numbers are from the GaLore paper, SLTrain's from its paper. The 7B runs are below the compute-optimal budget.</figcaption><script type="application/json">{"aria":"LLaMA-7B validation perplexity over 150 thousand steps. CoLA-M reaches 12.73, against 14.61 for 8-bit Adam and 14.65 for 8-bit GaLore, while using 26.8 GB of memory instead of 65 to 73 GB.","height":300,"rightPad":104,"compactPad":48,"x":{"min":5,"max":155,"ticks":[10,40,80,120,150],"tickFmt":["10k","40k","80k","120k","150k"],"label":"training steps","name":"Step","fmt":"int","tipFmt":"int"},"y":{"min":10,"max":28,"ticks":[10,14,18,22,26],"fmt":"int","tipFmt":2,"label":"validation perplexity"},"series":[{"id":"adam","name":"8-bit Adam, 72.6 GB","k":"c0b","points":[[40,18.09],[80,15.47],[120,14.83],[150,14.61]],"end":["14.61","8-bit Adam"]},{"id":"galore","name":"8-bit GaLore, 65.2 GB","k":"c0","points":[[10,26.87],[40,17.94],[80,15.39],[120,14.95],[150,14.65]],"end":["14.65","8-bit GaLore"]},{"id":"cola","name":"CoLA-M, 26.8 GB","k":"c1","points":[[10,22.76],[40,16.21],[80,13.82],[120,13.09],[150,12.73]],"end":["12.73","CoLA-M"]}]}</script></figure>
+  <div class="col">
+    <h3>A larger rank beats full-rank training</h3>
+    <p>Raising the rank to 0.7&times; of the full-rank compute makes CoLA better than full-rank training at all three sizes. Shrinking a full-rank model to CoLA's default budget instead costs a lot of perplexity.</p>
+    <figure class="fig"><div class="tbl"><table class="t"><thead><tr><th scope="col"></th><th scope="col">60M<span class="sub">perplexity</span></th><th scope="col"><span class="sub">compute</span></th><th scope="col">130M<span class="sub">perplexity</span></th><th scope="col"><span class="sub">compute</span></th><th scope="col">350M<span class="sub">perplexity</span></th><th scope="col"><span class="sub">compute</span></th></tr></thead><tbody><tr><th scope="row">Full-rank</th><td>34.06</td><td>1&times;</td><td>24.36</td><td>1&times;</td><td>18.80</td><td>1&times;</td></tr><tr><th scope="row">Smaller full-rank</th><td>37.73</td><td>0.4&times;</td><td>27.05</td><td>0.5&times;</td><td>20.53</td><td>0.4&times;</td></tr><tr><th scope="row">CoLA, default rank</th><td>34.04</td><td>0.4&times;</td><td>24.48</td><td>0.5&times;</td><td>19.40</td><td>0.4&times;</td></tr><tr class="ours"><th scope="row">CoLA, larger rank</th><td><span class="best">31.52</span></td><td>0.7&times;</td><td><span class="best">23.97</span></td><td>0.7&times;</td><td><span class="best">18.32</span></td><td>0.7&times;</td></tr></tbody></table></div><figcaption>Validation perplexity and compute relative to full-rank training.</figcaption></figure>
+    <h3>Beyond compute-optimal</h3>
+    <p>Trained 8&times; past the compute-optimal budget (51B tokens), LLaMA-350M with CoLA reaches 13.96 against 14.47 for full rank. A CoLA version of BERT-Large (350M) pre-trained on 85B tokens ends at a lower loss (1.257 against 1.263), and after fine-tuning it averages 83.5 on GLUE against 82.7, ahead or level on 7 of 8 tasks.</p>
+    <figure class="fig"><div class="tbl"><table class="t"><thead><tr><th scope="col"></th><th scope="col">QQP</th><th scope="col">SST-2</th><th scope="col">MRPC</th><th scope="col">CoLA</th><th scope="col">QNLI</th><th scope="col">MNLI</th><th scope="col">RTE</th><th scope="col">STS-B</th><th scope="col">Avg</th></tr></thead><tbody><tr><th scope="row">BERT-Large</th><td>91.1</td><td>92.1</td><td><span class="best">90.7</span></td><td>53.1</td><td>91.6</td><td><span class="best">84.3</span></td><td>69.9</td><td>88.9</td><td>82.7</td></tr><tr class="ours"><th scope="row">CoLA</th><td><span class="best">91.2</span></td><td><span class="best">92.3</span></td><td>90.6</td><td><span class="best">54.1</span></td><td><span class="best">91.7</span></td><td><span class="best">84.3</span></td><td><span class="best">74.2</span></td><td><span class="best">89.7</span></td><td><span class="best">83.5</span></td></tr></tbody></table></div><figcaption>GLUE after pre-training both models with NVIDIA's BERT reproduction; mean of the best 5 of 10 seeds.</figcaption></figure>
+    <h3>Faster to train and to serve</h3>
+    <p>CoLA and CoLA-M are the only methods here that train faster than the full-rank model. At inference, CoLA is up to 1.64&times; faster and uses up to 1.67&times; less memory.</p>
+  </div>
+  <div class="wide" style="max-width:52rem"><figure class="fig"><div class="frame"><div class="chart-head"><div><div class="chart-title">Pre-training throughput, LLaMA-1B on one A100 40GB</div><div class="chart-sub">tokens per second at batch 16</div></div></div><div class="hbw" style="--room:58px" style="padding-top:20px"><div class="hb"><div class="hb-row hl"><div class="hb-lab">CoLA</div><div class="hb-track" style="--w:95.88%"><i class="hb-ref" style="--x:59.67%"></i><span class="hb-reflab" style="--x:59.67%">full-rank</span><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;CoLA&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;11,506&quot;, &quot;l&quot;: &quot;tokens / s&quot;}, {&quot;v&quot;: &quot;1.61&amp;times;&quot;, &quot;l&quot;: &quot;vs full-rank&quot;}]}"></div><div class="hb-val">11,506</div></div></div><div class="hb-row hl"><div class="hb-lab">CoLA-M</div><div class="hb-track" style="--w:71.41%"><i class="hb-ref" style="--x:59.67%"></i><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;CoLA-M&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;8,569&quot;, &quot;l&quot;: &quot;tokens / s&quot;}, {&quot;v&quot;: &quot;1.20&amp;times;&quot;, &quot;l&quot;: &quot;vs full-rank&quot;}]}"></div><div class="hb-val">8,569</div></div></div><div class="hb-row"><div class="hb-lab">Full-rank</div><div class="hb-track" style="--w:59.67%"><i class="hb-ref" style="--x:59.67%"></i><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;Full-rank&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;7,161&quot;, &quot;l&quot;: &quot;tokens / s&quot;}, {&quot;v&quot;: &quot;1.00&amp;times;&quot;, &quot;l&quot;: &quot;vs full-rank&quot;}]}"></div><div class="hb-val">7,161</div></div></div><div class="hb-row"><div class="hb-lab">ReLoRA</div><div class="hb-track" style="--w:57.85%"><i class="hb-ref" style="--x:59.67%"></i><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;ReLoRA&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;6,942&quot;, &quot;l&quot;: &quot;tokens / s&quot;}, {&quot;v&quot;: &quot;0.97&amp;times;&quot;, &quot;l&quot;: &quot;vs full-rank&quot;}]}"></div><div class="hb-val">6,942</div></div></div><div class="hb-row"><div class="hb-lab">APOLLO</div><div class="hb-track" style="--w:56.98%"><i class="hb-ref" style="--x:59.67%"></i><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;APOLLO&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;6,838&quot;, &quot;l&quot;: &quot;tokens / s&quot;}, {&quot;v&quot;: &quot;0.95&amp;times;&quot;, &quot;l&quot;: &quot;vs full-rank&quot;}]}"></div><div class="hb-val">6,838</div></div></div><div class="hb-row"><div class="hb-lab">SLTrain</div><div class="hb-track" style="--w:56.42%"><i class="hb-ref" style="--x:59.67%"></i><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;SLTrain&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;6,770&quot;, &quot;l&quot;: &quot;tokens / s&quot;}, {&quot;v&quot;: &quot;0.95&amp;times;&quot;, &quot;l&quot;: &quot;vs full-rank&quot;}]}"></div><div class="hb-val">6,770</div></div></div><div class="hb-row"><div class="hb-lab">Vanilla GCP</div><div class="hb-track" style="--w:43.98%"><i class="hb-ref" style="--x:59.67%"></i><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;Vanilla GCP&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;5,278&quot;, &quot;l&quot;: &quot;tokens / s&quot;}, {&quot;v&quot;: &quot;0.74&amp;times;&quot;, &quot;l&quot;: &quot;vs full-rank&quot;}]}"></div><div class="hb-val">5,278</div></div></div><div class="hb-row"><div class="hb-lab">GaLore</div><div class="hb-track" style="--w:37.97%"><i class="hb-ref" style="--x:59.67%"></i><div class="hb-bar" tabindex="0" data-tip="{&quot;h&quot;: &quot;GaLore&quot;, &quot;r&quot;: [{&quot;v&quot;: &quot;4,556&quot;, &quot;l&quot;: &quot;tokens / s&quot;}, {&quot;v&quot;: &quot;0.64&amp;times;&quot;, &quot;l&quot;: &quot;vs full-rank&quot;}]}"></div><div class="hb-val">4,556</div></div></div></div><div class="hb-axis"><div></div><div class="hb-ticks"><span style="left:0.00%">0</span><span style="left:25.00%">3,000</span><span style="left:50.00%">6,000</span><span style="left:75.00%">9,000</span><span style="left:100.00%">12,000</span></div></div></div></div></figure></div>
+</section>
+
+<section class="sec col" id="next" aria-labelledby="next-h">
+  <h2 id="next-h">Limitations and follow-up work</h2>
+  <ul class="plain">
+    <li><b>Distributed training.</b> Scaling CoLA further needs proper model parallelism, and porting it to frameworks such as Megatron-LM and DeepSpeed is not trivial.</li>
+    <li><b>Industrial scale.</b> The industrial-setting check stops at BERT-size models. Decoder-only models with billions of parameters trained on trillions of tokens are still to be tested, and we are open to collaborating on that.</li>
+    <li><b>Mixture-of-experts.</b> The paper covers dense models only. Extending CoLA to MoE architectures is left for future work.</li>
+    <li><b>Follow-up work.</b> <a href="../#pub-lax">LaX</a> (NeurIPS 2025), <a href="https://arxiv.org/abs/2508.02668" target="_blank" rel="noopener">LOST</a> and <a href="https://arxiv.org/abs/2509.18993" target="_blank" rel="noopener">CR-Net</a> build on CoLA and improve it further.</li>
+  </ul>
+</section>
+
+<section class="sec col" id="citation" aria-labelledby="citation-h">
+  <h2 id="citation-h">Citation</h2>
+  <div class="bib"><div class="bib-top"><span class="label">BibTeX</span><button class="copy" type="button" data-target="bib"><svg class="i" aria-hidden="true"><use href="#i-copy"/></svg><span>Copy</span></button></div><pre id="bib">@inproceedings{liu-etal-2025-cola,
+    title = &quot;{C}o{LA}: Compute-Efficient Pre-Training of {LLM}s via Low-Rank Activation&quot;,
+    author = &quot;Liu, Ziyue  and
+      Zhang, Ruijie  and
+      Wang, Zhengyang  and
+      Yan, Mingsong  and
+      Yang, Zi  and
+      Hovland, Paul D.  and
+      Nicolae, Bogdan  and
+      Cappello, Franck  and
+      Tang, Sui  and
+      Zhang, Zheng&quot;,
+    editor = &quot;Christodoulopoulos, Christos  and
+      Chakraborty, Tanmoy  and
+      Rose, Carolyn  and
+      Peng, Violet&quot;,
+    booktitle = &quot;Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing&quot;,
+    month = nov,
+    year = &quot;2025&quot;,
+    address = &quot;Suzhou, China&quot;,
+    publisher = &quot;Association for Computational Linguistics&quot;,
+    url = &quot;https://aclanthology.org/2025.emnlp-main.230/&quot;,
+    doi = &quot;10.18653/v1/2025.emnlp-main.230&quot;,
+    pages = &quot;4627--4645&quot;,
+    ISBN = &quot;979-8-89176-332-6&quot;
+}</pre></div>
+</section>
+
+</main>
+<footer class="foot">
+  <div class="foot-in">
+    <span>&copy; 2026 Ziyue (Alvin) Liu &middot; <a href="../">Homepage</a></span>
+    <nav aria-label="Other projects"><a href="../recover/">ReCoVer</a><a href="../muon2/">Muon²</a></nav>
+  </div>
+</footer>
+<script>
+(function () {
+  var root = document.documentElement;
+  var dq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+  function theme() {
+    var t = root.getAttribute("data-theme");
+    return t === "light" || t === "dark" ? t : (dq && dq.matches ? "dark" : "light");
+  }
+  var tb = document.getElementById("theme-toggle");
+  if (tb) tb.addEventListener("click", function () {
+    var n = theme() === "dark" ? "light" : "dark";
+    root.setAttribute("data-theme", n);
+    try { localStorage.setItem("zl-theme", n); } catch (e) {}
+  });
+
+  /* copy BibTeX */
+  document.querySelectorAll(".copy").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var pre = document.getElementById(b.getAttribute("data-target"));
+      var txt = pre.textContent;
+      function sel() { var r = document.createRange(); r.selectNodeContents(pre); var s = getSelection(); s.removeAllRanges(); s.addRange(r); }
+      function done(msg) { var l = b.querySelector("span"); var old = l.textContent; l.textContent = msg; setTimeout(function () { l.textContent = old; }, 1600); }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(txt).then(function () { done("Copied"); }, function () { sel(); done("Press Ctrl+C"); });
+      } else { sel(); done("Press Ctrl+C"); }
+    });
+  });
+
+  /* tooltip */
+  var tip = document.createElement("div");
+  tip.className = "tip"; tip.hidden = true; tip.setAttribute("role", "status");
+  document.body.appendChild(tip);
+  function fill(head, rows) {
+    tip.textContent = "";
+    if (head) { var h = document.createElement("div"); h.className = "tip-h"; h.textContent = head; tip.appendChild(h); }
+    rows.forEach(function (r) {
+      var row = document.createElement("div"); row.className = "tip-r";
+      if (r.k) { var k = document.createElement("i"); k.className = "tip-k"; k.style.borderColor = "var(--" + r.k + ")"; row.appendChild(k); }
+      var v = document.createElement("strong"); v.textContent = r.v; row.appendChild(v);
+      if (r.l) { var l = document.createElement("span"); l.textContent = r.l; row.appendChild(l); }
+      tip.appendChild(row);
+    });
+    tip.hidden = false;
+  }
+  function place(x, y) {
+    var w = tip.offsetWidth, h = tip.offsetHeight, vw = innerWidth;
+    var left = Math.min(Math.max(8, x + 14), vw - w - 8);
+    var top = y - h - 12; if (top < 8) top = y + 16;
+    tip.style.left = left + "px"; tip.style.top = top + "px";
+  }
+  function hide() { tip.hidden = true; }
+  window.__tip = { fill: fill, place: place, hide: hide };
+  function bindTips(scope) {
+    scope.querySelectorAll("[data-tip]").forEach(function (el) {
+      if (el.__tipBound) return; el.__tipBound = true;
+      var d = JSON.parse(el.getAttribute("data-tip"));
+      el.addEventListener("pointerenter", function (e) { fill(d.h, d.r); place(e.clientX, e.clientY); });
+      el.addEventListener("pointermove", function (e) { place(e.clientX, e.clientY); });
+      el.addEventListener("pointerleave", hide);
+      el.addEventListener("focus", function () { var b = el.getBoundingClientRect(); fill(d.h, d.r); place(b.left + b.width / 2, b.top); });
+      el.addEventListener("blur", hide);
+    });
+  }
+  window.__bindTips = bindTips;
+  bindTips(document);
+  addEventListener("scroll", hide, { passive: true });
+
+  /* ---------- SVG helpers ---------- */
+  var NS = "http://www.w3.org/2000/svg";
+  function E(tag, a, p) { var e = document.createElementNS(NS, tag); for (var k in a) e.setAttribute(k, a[k]); if (p) p.appendChild(e); return e; }
+  function T(p, x, y, s, cls, anchor, base) {
+    var t = E("text", { x: x, y: y, "text-anchor": anchor || "start" }, p);
+    if (cls) t.setAttribute("class", cls);
+    if (base) t.setAttribute("dominant-baseline", base);
+    t.textContent = s; return t;
+  }
+  function scale(d0, d1, r0, r1) { return function (v) { return r0 + (v - d0) / (d1 - d0) * (r1 - r0); }; }
+  function fmt(v, f) {
+    if (f === "int") return Math.round(v).toLocaleString("en-US");
+    if (typeof f === "number") return v.toFixed(f);
+    return String(v);
+  }
+
+  /* line chart: spec {height, x:{min,max,ticks,label,fmt}, y:{...,label}, series:[{id,name,k,points,end,style}], band:{lo,hi}} */
+  function lineChart(box, s) {
+    var W = box.clientWidth, H = Math.round(Math.min(s.height || 300, Math.max(s.strip ? 310 : 220, W * 0.62)));
+    var compact = W < 520;
+    var m = { l: 46, r: s.rightPad != null ? s.rightPad : 104, t: s.y.label ? 30 : 10, b: s.x.label ? 46 : 28 };
+    if (compact) m.r = Math.min(m.r, s.compactPad || 52);
+    box.textContent = "";
+    var svg = E("svg", { viewBox: "0 0 " + W + " " + H, height: H, role: "img", "aria-label": s.aria || "" }, box);
+    /* optional strip under the plot, on its own scale, for points listed in a series' gaps */
+    var st = s.strip, mb = st ? H - m.b - st.h - 18 : H - m.b;
+    var X = scale(s.x.min, s.x.max, m.l, W - m.r), Y = scale(s.y.min, s.y.max, mb, m.t);
+    var Ys = st ? scale(st.min, st.max, H - m.b, H - m.b - st.h) : null;
+    s.y.ticks.forEach(function (v) {
+      var y = Math.round(Y(v)) + .5;
+      E("line", { x1: m.l, x2: W - m.r, y1: y, y2: y, "class": v === s.y.min && !st ? "ax" : "gl" }, svg);
+      T(svg, m.l - 8, y, fmt(v, s.y.fmt), null, "end", "middle");
+    });
+    if (st) {
+      E("rect", { x: m.l, y: H - m.b - st.h, width: W - m.l - m.r, height: st.h, "class": "strip" }, svg);
+      st.ticks.forEach(function (v) {
+        var y = Math.round(Ys(v)) + .5;
+        E("line", { x1: m.l, x2: W - m.r, y1: y, y2: y, "class": v === st.min ? "ax" : "gl" }, svg);
+        T(svg, m.l - 8, y, fmt(v, s.y.fmt), null, "end", "middle");
+      });
+      T(svg, W - m.r - 8, H - m.b - 11, compact ? st.short : st.label, "crit", "end", "middle");
+    }
+    s.x.ticks.forEach(function (v, i) {
+      if (compact && s.x.thin && i % 2) return;
+      T(svg, X(v), H - m.b + 18, s.x.tickFmt ? s.x.tickFmt[i] : fmt(v, s.x.fmt), null, "middle");
+    });
+    if (s.x.label) T(svg, (m.l + W - m.r) / 2, H - 8, s.x.label, null, "middle");
+    if (s.y.label) T(svg, 0, 11, s.y.label, "ylab", "start", "middle");
+    function path(pts) { return pts.map(function (p, i) { return (i ? "L" : "M") + X(p[0]).toFixed(1) + " " + Y(p[1]).toFixed(1); }).join(""); }
+    var byId = {};
+    s.series.forEach(function (se) { byId[se.id] = se; });
+    if (s.band) {
+      var lo = byId[s.band.lo].points, hi = byId[s.band.hi].points;
+      var d = path(hi) + lo.slice().reverse().map(function (p) { return "L" + X(p[0]).toFixed(1) + " " + Y(p[1]).toFixed(1); }).join("") + "Z";
+      E("path", { d: d, "class": "wash" }, svg);
+    }
+    var ends = [];
+    s.series.forEach(function (se) {
+      var gap = se.gaps ? se.gaps.reduce(function (o, x) { o[x] = 1; return o; }, {}) : null;
+      se._gap = gap;
+      var pts = gap ? se.points.filter(function (p) { return !gap[p[0]]; }) : se.points;
+      E("path", { d: path(pts), "class": (se.style === "under" ? "under s-" : "ln s-") + se.k }, svg);
+      if (gap) se.points.forEach(function (p) {
+        if (gap[p[0]]) E("circle", { cx: X(p[0]).toFixed(1), cy: (st ? Ys : Y)(p[1]).toFixed(1), r: compact ? 2.4 : 3, "class": "fdot" }, svg);
+      });
+    });
+    s.series.forEach(function (se) {
+      var last = se.points[se.points.length - 1];
+      if (se.marker !== false) E("circle", { cx: X(last[0]), cy: Y(last[1]), r: 4.5, "class": "dot f-" + se.k }, svg);
+      if (se.end) ends.push({ se: se, x: X(last[0]), y0: Y(last[1]), two: !compact && se.end[1] });
+    });
+    /* end labels: keep them from overlapping, with a short leader when a label had to move */
+    ends.sort(function (a, b) { return a.y0 - b.y0; });
+    ends.forEach(function (e) { e.h = e.two ? 32 : 17; e.y = e.y0; });
+    var H0 = H; H = mb + m.b; /* keep end labels inside the main plot */
+    for (var it = 0; it < 20; it++) {
+      var moved = false;
+      for (var i = 1; i < ends.length; i++) {
+        var a = ends[i - 1], b = ends[i], need = (a.h + b.h) / 2 + 2 - (b.y - a.y);
+        if (need > 0) { a.y -= need / 2; b.y += need / 2; moved = true; }
+      }
+      ends.forEach(function (e) { e.y = Math.max(m.t + e.h / 2 - 4, Math.min(H - m.b - e.h / 2 + 4, e.y)); });
+      if (!moved) break;
+    }
+    H = H0;
+    ends.forEach(function (e) {
+      var ex = e.x + 10;
+      if (Math.abs(e.y - e.y0) > 3) { E("line", { x1: e.x + 6, y1: e.y0, x2: ex - 2, y2: e.y, "class": "leader" }, svg); }
+      if (e.two) {
+        T(svg, ex, e.y - 7, e.se.end[0], "val", "start", "middle");
+        T(svg, ex, e.y + 8, e.se.end[1], null, "start", "middle");
+      } else T(svg, ex, e.y, e.se.end[0], "val", "start", "middle");
+    });
+    (s.notes || []).forEach(function (n) {
+      if (compact && n.wide) return;
+      if (!compact && n.narrow) return;
+      T(svg, X(n.x), Y(n.y), n.text, n.cls || null, n.anchor || "start", "middle");
+    });
+    if (s.crosshair === false) return;
+    var g = E("g", { style: "pointer-events:none" }, svg);
+    var xh = E("line", { y1: m.t, y2: H - m.b, "class": "xh", visibility: "hidden" }, g);
+    function yOf(se, p) { return st && se._gap && se._gap[p[0]] ? Ys(p[1]) : Y(p[1]); }
+    var dots = s.series.map(function (se) { return E("circle", { r: 4.5, "class": "dot f-" + se.k, visibility: "hidden" }, g); });
+    var hit = E("rect", { x: m.l, y: m.t, width: W - m.l - m.r, height: H - m.t - m.b, "class": "hit" }, svg);
+    function at(pts, x) {
+      var best = pts[0], bd = Infinity;
+      for (var i = 0; i < pts.length; i++) { var d = Math.abs(pts[i][0] - x); if (d < bd) { bd = d; best = pts[i]; } }
+      return best;
+    }
+    function move(e) {
+      var r = svg.getBoundingClientRect(), px = e.clientX - r.left;
+      var xv = s.x.min + (px - m.l) / (W - m.l - m.r) * (s.x.max - s.x.min);
+      xv = Math.max(s.x.min, Math.min(s.x.max, xv));
+      var rows = [], xs = null;
+      s.series.forEach(function (se, i) {
+        var p = at(se.points, xv); xs = xs == null ? p[0] : xs;
+        dots[i].setAttribute("cx", X(p[0])); dots[i].setAttribute("cy", yOf(se, p)); dots[i].setAttribute("visibility", "visible");
+        var failed = se._gap && se._gap[p[0]];
+        rows.push({ v: fmt(p[1], s.y.tipFmt != null ? s.y.tipFmt : s.y.fmt) + (s.y.unit || ""), l: se.name + (failed ? " (failure step)" : ""), k: failed ? "crit" : se.k });
+      });
+      xh.setAttribute("x1", X(xs)); xh.setAttribute("x2", X(xs)); xh.setAttribute("visibility", "visible");
+      window.__tip.fill(s.x.name + " " + (s.x.cats ? s.x.cats[Math.round(xs)] : fmt(xs, s.x.tipFmt != null ? s.x.tipFmt : s.x.fmt)), rows);
+      window.__tip.place(e.clientX, e.clientY);
+    }
+    hit.addEventListener("pointermove", move);
+    hit.addEventListener("pointerdown", move);
+    hit.addEventListener("pointerleave", function () {
+      window.__tip.hide(); xh.setAttribute("visibility", "hidden");
+      dots.forEach(function (d) { d.setAttribute("visibility", "hidden"); });
+    });
+  }
+
+  /* step histogram over log10(sigma) with convergence zones; spec {sets:{key:{a:[[lo,hi,v]],b:[...]}}, zones, ymax} */
+  function histChart(box, s, key) {
+    var W = box.clientWidth, H = Math.round(Math.min(320, Math.max(240, W * 0.58)));
+    var m = { l: 46, r: 14, t: 46, b: 48 };
+    box.textContent = "";
+    var set = s.sets[key];
+    var svg = E("svg", { viewBox: "0 0 " + W + " " + H, height: H, role: "img", "aria-label": s.aria || "" }, box);
+    var X = scale(-4, 0, m.l, W - m.r), Y = scale(0, set.ymax, H - m.b, m.t);
+    s.zones.forEach(function (z, i) {
+      E("rect", { x: X(z.lo), y: m.t, width: X(z.hi) - X(z.lo), height: H - m.t - m.b, "class": "zone " + (z.cls || "") }, svg);
+      if (i) E("line", { x1: X(z.lo), x2: X(z.lo), y1: m.t - 4, y2: H - m.b, "class": "zline" }, svg);
+      T(svg, (X(z.lo) + X(z.hi)) / 2, m.t - 12, W < 520 ? z.short : z.name, "zlab " + (z.cls || ""), "middle");
+    });
+    set.ticks.forEach(function (v) {
+      var y = Math.round(Y(v)) + .5;
+      E("line", { x1: m.l, x2: W - m.r, y1: y, y2: y, "class": v === 0 ? "ax" : "gl" }, svg);
+      T(svg, m.l - 8, y, v ? v.toFixed(2) : "0", null, "end", "middle");
+    });
+    T(svg, 0, 11, s.ylabel || "", "ylab", "start", "middle");
+    [-4, -3, -2, -1, 0].forEach(function (v) {
+      var t = T(svg, X(v), H - m.b + 21, "10", null, "middle");
+      var sup = E("tspan", { dy: -5, "font-size": 9 }, t); sup.textContent = v ? "\u2212" + String(-v) : "0";
+    });
+    T(svg, (m.l + W - m.r) / 2, H - 8, "singular value of the NS input (log scale)", null, "middle");
+    function stepPath(bins, close) {
+      var d = "M" + X(bins[0][0]).toFixed(1) + " " + Y(0).toFixed(1);
+      bins.forEach(function (b) { d += "L" + X(b[0]).toFixed(1) + " " + Y(b[2]).toFixed(1) + "L" + X(b[1]).toFixed(1) + " " + Y(b[2]).toFixed(1); });
+      d += "L" + X(bins[bins.length - 1][1]).toFixed(1) + " " + Y(0).toFixed(1);
+      return close ? d + "Z" : d;
+    }
+    E("path", { d: stepPath(set.b, true), "class": "wash0" }, svg);
+    E("path", { d: stepPath(set.a, true), "class": "wash" }, svg);
+    E("path", { d: stepPath(set.b), "class": "ln s-c0" }, svg);
+    E("path", { d: stepPath(set.a), "class": "ln s-c1" }, svg);
+    var hit = E("rect", { x: m.l, y: m.t, width: W - m.l - m.r, height: H - m.t - m.b, "class": "hit" }, svg);
+    function find(bins, v) { for (var i = 0; i < bins.length; i++) if (v >= bins[i][0] && v < bins[i][1]) return bins[i]; return null; }
+    hit.addEventListener("pointermove", function (e) {
+      var r = svg.getBoundingClientRect(), v = -4 + (e.clientX - r.left - m.l) / (W - m.l - m.r) * 4;
+      var a = find(set.a, v), b = find(set.b, v);
+      if (!a || !b) { window.__tip.hide(); return; }
+      var c = (a[0] + a[1]) / 2;
+      window.__tip.fill("σ ≈ " + Math.pow(10, c).toExponential(1), [
+        { v: a[2].toFixed(3), l: s.names[0], k: "c1" }, { v: b[2].toFixed(3), l: s.names[1], k: "c0" }]);
+      window.__tip.place(e.clientX, e.clientY);
+    });
+    hit.addEventListener("pointerleave", function () { window.__tip.hide(); });
+  }
+
+  /* bubble chart: spec {x:{min,max,ticks,label}, y:{...}, pts:[{name,x,y,size,k,lab:[dx,dy,anchor]}], rMax} */
+  function bubbleChart(box, s) {
+    var W = box.clientWidth, H = Math.round(Math.min(340, Math.max(250, W * 0.6)));
+    var m = { l: 46, r: 18, t: s.y.label ? 34 : 16, b: 46 };
+    box.textContent = "";
+    var svg = E("svg", { viewBox: "0 0 " + W + " " + H, height: H, role: "img", "aria-label": s.aria || "" }, box);
+    var X = scale(s.x.min, s.x.max, m.l, W - m.r), Y = scale(s.y.min, s.y.max, H - m.b, m.t);
+    if (s.y.label) T(svg, 0, 11, s.y.label, "ylab", "start", "middle");
+    s.y.ticks.forEach(function (v) {
+      var y = Math.round(Y(v)) + .5;
+      E("line", { x1: m.l, x2: W - m.r, y1: y, y2: y, "class": v === s.y.min ? "ax" : "gl" }, svg);
+      T(svg, m.l - 8, y, v.toFixed(s.y.fmt || 0), null, "end", "middle");
+    });
+    s.x.ticks.forEach(function (v) { T(svg, X(v), H - m.b + 18, v + "×", null, "middle"); });
+    T(svg, (m.l + W - m.r) / 2, H - 8, s.x.label, null, "middle");
+    var rmax = Math.max(14, Math.min(s.rMax || 30, W / 22));
+    var smax = Math.max.apply(null, s.pts.map(function (p) { return p.size; }));
+    s.pts.slice().sort(function (a, b) { return b.size - a.size; }).forEach(function (p) {
+      var r = rmax * Math.sqrt(p.size / smax), cx = X(p.x), cy = Y(p.y);
+      var c = E("circle", { cx: cx, cy: cy, r: r, "class": "bub f-" + p.k, tabindex: 0, "fill-opacity": p.k === "c1" ? .9 : .55 }, svg);
+      var tipd = { h: p.name, r: [{ v: p.y.toFixed(2), l: "validation perplexity" }, { v: p.x.toFixed(2) + "×", l: "compute vs full-rank" }, { v: p.size + "M", l: "parameters" }] };
+      c.setAttribute("data-tip", JSON.stringify(tipd));
+      var l = p.lab || [0, -1, "middle"];
+      var ly = l[1] < 0 ? cy - r - 8 : cy + r + 16;
+      T(svg, cx + l[0], ly, p.name, p.k === "c1" ? "lab val" : "lab", l[2]);
+    });
+    window.__bindTips(box);
+  }
+
+  var charts = [];
+  document.querySelectorAll("[data-chart]").forEach(function (fig) {
+    var spec = JSON.parse(fig.querySelector("script[type='application/json']").textContent);
+    var box = fig.querySelector(".plot");
+    var kind = fig.getAttribute("data-chart");
+    var state = { key: spec.initial };
+    function draw() {
+      if (kind === "line") lineChart(box, spec);
+      else if (kind === "hist") histChart(box, spec, state.key);
+      else if (kind === "bubble") bubbleChart(box, spec);
+    }
+    fig.querySelectorAll(".seg button[data-key]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        state.key = b.getAttribute("data-key");
+        fig.querySelectorAll(".seg button").forEach(function (o) { o.setAttribute("aria-pressed", String(o === b)); });
+        var c = fig.querySelector("[data-caption='" + state.key + "']");
+        fig.querySelectorAll("[data-caption]").forEach(function (o) { o.hidden = o !== c; });
+        draw();
+      });
+    });
+    charts.push({ box: box, draw: draw, w: 0 });
+    draw();
+  });
+  var rt;
+  addEventListener("resize", function () {
+    clearTimeout(rt);
+    rt = setTimeout(function () { charts.forEach(function (c) { if (c.box.clientWidth !== c.w) { c.w = c.box.clientWidth; c.draw(); } }); }, 120);
+  });
+})();
+
+(function () {
+  document.querySelectorAll("[data-switch]").forEach(function (box) {
+    var btns = box.querySelectorAll(".seg button"), panes = box.querySelectorAll("[data-pane]");
+    btns.forEach(function (b) {
+      b.addEventListener("click", function () {
+        btns.forEach(function (o) { o.setAttribute("aria-pressed", String(o === b)); });
+        panes.forEach(function (p) { p.hidden = p.getAttribute("data-pane") !== b.getAttribute("data-key"); });
+      });
+    });
+  });
+})();
+</script>
+</body>
+</html>

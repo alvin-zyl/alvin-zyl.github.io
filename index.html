@@ -1,0 +1,1395 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Ziyue (Alvin) Liu is a Ph.D. student in Computer Science at UC Santa Barbara working on efficient and resilient pre-training of large language models.">
+<meta name="author" content="Ziyue (Alvin) Liu">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Ziyue (Alvin) Liu">
+<meta property="og:description" content="Ziyue (Alvin) Liu is a Ph.D. student in Computer Science at UC Santa Barbara working on efficient and resilient pre-training of large language models.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231b4d90'/%3E%3Ctext x='32' y='43' text-anchor='middle' font-family='Georgia,serif' font-size='30' font-weight='700' fill='%23ffffff'%3EZL%3C/text%3E%3C/svg%3E">
+<title>Ziyue (Alvin) Liu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<style>
+/* Layout: sticky top bar; a sticky identity column beside one reading column; everything stacks to a single column under 900px. */
+:root {
+  --bg: #ffffff;
+  --surface: #f5f7fa;
+  --surface-2: #eef2f7;
+  --ink: #131c28;
+  --text: #364355;
+  --muted: #647285;
+  --faint: #a3adbb;
+  --line: #e3e8ef;
+  --accent: #1b4d90;
+  --accent-ink: #143c72;
+  --accent-soft: #edf3fb;
+  --accent-line: #cbdaef;
+  --gold: #8f5d00;
+  --gold-soft: #fff5dc;
+  --gold-line: #e7b94f;
+  --ok: #178246;
+  --star: #dc9e22;
+  --shadow: 0 1px 2px rgba(19, 28, 40, .05), 0 10px 28px -14px rgba(19, 28, 40, .22);
+
+  --font-display: "Source Serif 4", "Source Serif Pro", Georgia, "Times New Roman", serif;
+  --font-body: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --nav-h: 60px;
+  --news-date: 76px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141b;
+    --surface: #151c26;
+    --surface-2: #1a2330;
+    --ink: #edf1f6;
+    --text: #c3ccd8;
+    --muted: #95a2b3;
+    --faint: #5f6b7c;
+    --line: #243041;
+    --accent: #8db5ee;
+    --accent-ink: #b7d0f5;
+    --accent-soft: #162439;
+    --accent-line: #2d4568;
+    --gold: #f1c45e;
+    --gold-soft: #2a2314;
+    --gold-line: #9a7429;
+    --ok: #4ade80;
+    --star: #ecbd4f;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 12px 30px -14px rgba(0, 0, 0, .7);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141b;
+  --surface: #151c26;
+  --surface-2: #1a2330;
+  --ink: #edf1f6;
+  --text: #c3ccd8;
+  --muted: #95a2b3;
+  --faint: #5f6b7c;
+  --line: #243041;
+  --accent: #8db5ee;
+  --accent-ink: #b7d0f5;
+  --accent-soft: #162439;
+  --accent-line: #2d4568;
+  --gold: #f1c45e;
+  --gold-soft: #2a2314;
+  --gold-line: #9a7429;
+  --ok: #4ade80;
+  --star: #ecbd4f;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 12px 30px -14px rgba(0, 0, 0, .7);
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: calc(var(--nav-h) + 24px);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+a { color: var(--accent); text-decoration: none; text-underline-offset: 3px; }
+a:hover { text-decoration: underline; text-decoration-thickness: 1px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+::selection { background: var(--accent-soft); color: var(--ink); }
+p { margin: 0; }
+h1, h2, h3 { margin: 0; color: var(--ink); }
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+.skip {
+  position: absolute; left: -9999px; top: 8px; z-index: 100;
+  background: var(--ink); color: var(--bg); padding: 8px 12px; border-radius: 8px;
+}
+.skip:focus { left: 16px; }
+
+.i {
+  width: 18px; height: 18px; flex: none;
+  fill: none; stroke: currentColor; stroke-width: 1.8;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.i-fill { fill: currentColor; stroke: none; }
+
+.wrap {
+  width: 100%;
+  max-width: 1140px;
+  margin-inline: auto;
+  padding-inline: clamp(16px, 4vw, 32px);
+}
+
+/* ---------- Top bar ---------- */
+.topbar {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 50;
+  background: var(--bg);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  -webkit-backdrop-filter: saturate(1.4) blur(12px);
+  backdrop-filter: saturate(1.4) blur(12px);
+  border-bottom: 1px solid var(--line);
+}
+.topbar-inner {
+  position: relative;
+  height: var(--nav-h);
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.brand {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -.005em;
+  white-space: nowrap;
+}
+.brand:hover { text-decoration: none; color: var(--accent); }
+.nav { margin-left: auto; display: flex; align-items: center; gap: 2px; }
+.nav a {
+  position: relative;
+  padding: 6px 10px;
+  font-size: 14.5px;
+  font-weight: 500;
+  color: var(--muted);
+  border-radius: 6px;
+}
+.nav a:hover { color: var(--ink); text-decoration: none; }
+.nav a.is-active { color: var(--ink); }
+.nav a.is-active::after {
+  content: "";
+  position: absolute;
+  left: 10px; right: 10px; bottom: -1px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--gold-line);
+}
+.topbar-actions { display: flex; align-items: center; gap: 8px; }
+.btn-cv {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 36px; padding: 0 12px;
+  border: 1px solid var(--line); border-radius: 8px;
+  font-size: 14px; font-weight: 500; color: var(--ink);
+}
+.btn-cv:hover { border-color: var(--accent-line); color: var(--accent); text-decoration: none; }
+.btn-cv .i { width: 16px; height: 16px; }
+.icon-btn {
+  width: 36px; height: 36px;
+  display: grid; place-items: center;
+  border: 1px solid var(--line); border-radius: 8px;
+  background: transparent; color: var(--muted);
+  cursor: pointer; padding: 0;
+}
+.icon-btn:hover { color: var(--ink); border-color: var(--accent-line); }
+.icon-btn .i { width: 17px; height: 17px; }
+.menu-btn { display: none; }
+.i-sun-wrap { display: none; }
+:root[data-theme="dark"] .i-sun-wrap { display: block; }
+:root[data-theme="dark"] .i-moon-wrap { display: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .i-sun-wrap { display: block; }
+  :root:not([data-theme="light"]) .i-moon-wrap { display: none; }
+}
+
+/* ---------- Page layout ---------- */
+.layout {
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr);
+  gap: 64px;
+  padding-block: 52px 72px;
+}
+.sidebar {
+  position: sticky;
+  top: calc(env(safe-area-inset-top, 0px) + var(--nav-h) + 40px);
+  align-self: start;
+}
+.content { min-width: 0; }
+
+/* ---------- Identity column ---------- */
+.avatar {
+  position: relative;
+  width: 172px;
+  max-width: 100%;
+  aspect-ratio: 1;
+  border-radius: 20px;
+  overflow: hidden;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
+  box-shadow: var(--shadow);
+}
+.avatar canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.avatar .mono {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 58px;
+  letter-spacing: -.02em;
+  color: var(--accent-ink);
+}
+.avatar img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity .3s ease;
+}
+.avatar img.is-loaded { opacity: 1; }
+.id-name {
+  margin-top: 22px;
+  font-family: var(--font-display);
+  font-size: 28px;
+  line-height: 1.15;
+  font-weight: 600;
+  letter-spacing: -.012em;
+  text-wrap: balance;
+}
+.id-role { margin-top: 8px; font-size: 15px; line-height: 1.5; color: var(--text); }
+.id-role a { font-weight: 600; color: var(--accent); }
+.id-loc {
+  display: flex; align-items: center; gap: 6px;
+  margin-top: 8px; font-size: 14px; color: var(--muted);
+}
+.id-loc .i { width: 15px; height: 15px; }
+.id-links { list-style: none; margin: 22px 0 0; padding: 0; display: grid; gap: 2px; }
+.id-links li { position: relative; display: flex; align-items: center; min-width: 0; }
+.id-links a {
+  flex: 1; min-width: 0;
+  display: flex; align-items: center; gap: 11px;
+  padding: 6px 8px; margin-inline: -8px;
+  border-radius: 8px;
+  font-size: 14.5px; color: var(--text);
+}
+.id-links a:hover { background: var(--surface); color: var(--ink); text-decoration: none; }
+.id-links a .i { width: 17px; height: 17px; color: var(--accent); }
+.id-links a span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.copy {
+  flex: none;
+  width: 30px; height: 30px;
+  margin-left: 12px;
+  display: grid; place-items: center;
+  border: 0; border-radius: 7px;
+  background: transparent; color: var(--muted);
+  cursor: pointer; padding: 0;
+}
+.copy:hover { background: var(--surface); color: var(--ink); }
+.copy .i { width: 15px; height: 15px; }
+.copy-tip {
+  position: absolute; right: 0; top: -24px;
+  padding: 2px 8px; border-radius: 6px;
+  background: var(--ink); color: var(--bg);
+  font-size: 12px; line-height: 1.5; white-space: nowrap;
+  opacity: 0; transform: translateY(4px);
+  transition: opacity .15s ease, transform .15s ease;
+  pointer-events: none;
+}
+.copy-tip.show { opacity: 1; transform: none; }
+
+/* ---------- Sections ---------- */
+.section + .section {
+  margin-top: 52px;
+  padding-top: 44px;
+  border-top: 1px solid var(--line);
+}
+.section-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  flex-wrap: wrap; gap: 8px 20px;
+  margin-bottom: 18px;
+}
+h2 {
+  font-family: var(--font-display);
+  font-size: 28px;
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: -.012em;
+  text-wrap: balance;
+}
+.section-head a { font-size: 14px; font-weight: 500; display: inline-flex; align-items: center; gap: 4px; }
+.section-head a .i { width: 14px; height: 14px; }
+.section-intro { margin: -6px 0 20px; color: var(--muted); max-width: 68ch; }
+
+/* About */
+.lede {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(25px, 2.5vw, 31px);
+  line-height: 1.28;
+  letter-spacing: -.014em;
+  color: var(--ink);
+  margin: 2px 0 24px;
+  text-wrap: balance;
+}
+/* two lines: the statement, then the three goals */
+.lede em { display: block; font-style: italic; color: var(--accent); }
+.prose { display: grid; gap: 14px; max-width: 68ch; }
+.prose strong { color: var(--ink); font-weight: 600; }
+.callout {
+  display: flex; align-items: flex-start; gap: 14px;
+  margin-top: 24px;
+  padding: 15px 18px;
+  border: 1px solid var(--accent-line);
+  border-radius: 12px;
+  background: var(--accent-soft);
+  color: var(--ink);
+  max-width: 68ch;
+}
+.callout strong { font-weight: 600; }
+.pulse {
+  position: relative; flex: none;
+  width: 10px; height: 10px; margin-top: 8px;
+  border-radius: 50%;
+  background: var(--ok);
+}
+.pulse::after {
+  content: "";
+  position: absolute; inset: -4px;
+  border-radius: 50%;
+  border: 2px solid var(--ok);
+  opacity: 0;
+  animation: pulse 2.4s ease-out infinite;
+}
+@keyframes pulse {
+  0% { transform: scale(.6); opacity: .55; }
+  80%, 100% { transform: scale(1.5); opacity: 0; }
+}
+
+/* News */
+.news { list-style: none; margin: 0; padding: 0; }
+.news li {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--news-date) 14px minmax(0, 1fr);
+  column-gap: 14px;
+  padding-block: 7px;
+}
+.news time {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.65;
+  padding-top: 3px;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.news .dot { position: relative; }
+.news .dot::before {
+  content: "";
+  position: absolute; left: 2px; top: 9px;
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--bg);
+  border: 2px solid var(--accent-line);
+}
+.news li:first-child .dot::before { border-color: var(--gold-line); background: var(--gold-soft); }
+.news li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: calc(var(--news-date) + 14px + 7px - .5px);
+  top: 28px; bottom: -14px;
+  width: 1px;
+  background: var(--line);
+}
+.section-note { font-size: 13px; color: var(--muted); }
+.news-box {
+  --fade-top: 0px;
+  --fade-bottom: 48px;
+  max-height: min(430px, 62vh);
+  overflow-y: auto;
+  padding-right: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade-top), #000 calc(100% - var(--fade-bottom)), transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade-top), #000 calc(100% - var(--fade-bottom)), transparent 100%);
+}
+.news-box.is-scrolled { --fade-top: 28px; }
+.news-box.at-end { --fade-bottom: 0px; }
+.news-box:focus-visible { outline-offset: 4px; }
+.news-box::-webkit-scrollbar { width: 6px; }
+.news-box::-webkit-scrollbar-thumb { background: var(--line); border-radius: 6px; }
+.news .ref { font-weight: 600; color: var(--ink); }
+.news .ref:hover { color: var(--accent); }
+.news .hl { color: var(--gold); font-weight: 600; }
+
+/* Research stack */
+.stack { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.layer {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 20px;
+  padding: 20px 22px;
+}
+.layer + .layer { border-top: 1px solid var(--line); }
+.layer[data-level="1"] { background: var(--bg); }
+.layer[data-level="2"] { background: var(--surface); }
+.layer[data-level="3"] { background: var(--surface-2); }
+.layer-label {
+  display: flex; align-items: center; gap: 11px;
+  align-self: start;
+  padding-top: 2px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.glyph { width: 22px; height: 19px; flex: none; }
+.glyph rect { fill: transparent; stroke: var(--faint); stroke-width: 1.3; }
+.layer[data-level="1"] .glyph rect:nth-child(1),
+.layer[data-level="2"] .glyph rect:nth-child(2),
+.layer[data-level="3"] .glyph rect:nth-child(3) { fill: var(--accent); stroke: var(--accent); }
+.layer-body p { margin-bottom: 12px; max-width: 60ch; }
+.group-label {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+  margin: 0 0 10px;
+  font-family: var(--font-mono);
+  font-size: 12px; font-weight: 500;
+  letter-spacing: .08em; text-transform: uppercase;
+  color: var(--muted);
+}
+.stack + .group-label { margin-top: 30px; }
+.glyph.wave path { fill: none; stroke: var(--accent); stroke-width: 1.8; stroke-linecap: round; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  display: inline-flex; align-items: baseline; gap: 7px;
+  padding: 4px 11px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--bg);
+  font-size: 13.5px; font-weight: 600; line-height: 1.5;
+  color: var(--ink);
+}
+.chip span { font-family: var(--font-mono); font-size: 11.5px; font-weight: 400; color: var(--muted); }
+.chip:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+
+/* Publications */
+.pub-tools {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: 12px 20px;
+  margin-bottom: 14px;
+}
+.filters { display: flex; flex-wrap: wrap; gap: 8px; }
+.filter {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 5px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--bg);
+  font: inherit; font-size: 13.5px; font-weight: 500; line-height: 1.5;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color .15s ease, background-color .15s ease, color .15s ease;
+}
+.filter span { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); }
+.filter:hover { border-color: var(--accent-line); color: var(--ink); }
+.filter.is-on { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.filter.is-on span { color: var(--bg); opacity: .7; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; color: var(--muted); }
+.legend > span { display: inline-flex; align-items: center; gap: 6px; }
+.star { width: 14px; height: 14px; color: var(--star); }
+.pubs { list-style: none; margin: 0; padding: 0; }
+.pub {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 20px;
+  padding-block: 18px;
+  border-top: 1px solid var(--line);
+  border-radius: 2px;
+}
+.pub:target { animation: target-flash 2.6s ease-out; }
+@keyframes target-flash {
+  0%, 35% { background: var(--accent-soft); box-shadow: 0 0 0 10px var(--accent-soft); }
+  100% { background: transparent; box-shadow: 0 0 0 10px transparent; }
+}
+.pub-venue { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding-top: 2px; }
+.tag {
+  display: inline-block;
+  padding: 3px 8px;
+  border: 1px solid var(--accent-line);
+  border-radius: 6px;
+  background: var(--accent-soft);
+  font-family: var(--font-mono);
+  font-size: 12px; font-weight: 500; line-height: 1.35;
+  letter-spacing: .01em;
+  color: var(--accent-ink);
+  white-space: nowrap;
+}
+.tag.oral { border-color: var(--gold-line); background: var(--gold-soft); color: var(--gold); }
+.tag.review { background: transparent; border-style: dashed; border-color: var(--faint); color: var(--muted); }
+.tag.ws { background: var(--surface); border-color: var(--line); color: var(--muted); }
+.pub-title { font-size: 16.5px; line-height: 1.42; font-weight: 600; text-wrap: pretty; }
+.pub-title a { color: var(--ink); }
+.pub-title a:hover { color: var(--accent); text-decoration: none; }
+.pub-title .star { display: inline-block; vertical-align: -1px; margin-right: 6px; }
+.pub-authors { margin-top: 5px; font-size: 14.5px; line-height: 1.55; color: var(--muted); }
+.pub-authors .me { color: var(--ink); font-weight: 600; }
+.pub-authors sup { font-size: .72em; margin-left: 1px; }
+.pub-tldr { margin-top: 6px; font-size: 14.5px; line-height: 1.55; color: var(--text); max-width: 70ch; }
+.pub-links { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px; }
+.plink {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 9px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 13px; font-weight: 500; line-height: 1.6;
+  color: var(--text);
+}
+.plink .i { width: 13px; height: 13px; }
+.plink:hover { border-color: var(--accent-line); background: var(--accent-soft); color: var(--accent); text-decoration: none; }
+.plink.proj { border-color: var(--accent-line); background: var(--accent-soft); color: var(--accent); }
+.plink.proj:hover { border-color: var(--accent); }
+.plink .t { margin-left: 3px; font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; }
+.plink:hover .t { color: inherit; }
+
+/* Experience */
+.xp-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px; }
+.col-title {
+  margin-bottom: 16px;
+  font-family: var(--font-mono);
+  font-size: 12.5px; font-weight: 500;
+  letter-spacing: .08em; text-transform: uppercase;
+  color: var(--muted);
+}
+.tl { list-style: none; margin: 0; padding: 0; }
+.tl > li { position: relative; padding: 0 0 22px 24px; }
+.tl > li:last-child { padding-bottom: 0; }
+.tl > li::before {
+  content: "";
+  position: absolute; left: 0; top: 5px;
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--bg);
+  border: 2px solid var(--accent);
+}
+.tl > li:not(:last-child)::after {
+  content: "";
+  position: absolute; left: 4.5px; top: 20px; bottom: -3px;
+  width: 1px;
+  background: var(--line);
+}
+.tl-date {
+  font-family: var(--font-mono);
+  font-size: 12.5px; line-height: 1.6;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.tl-title { margin-top: 2px; font-size: 15.5px; line-height: 1.4; font-weight: 600; color: var(--ink); }
+.tl-org { margin-top: 1px; font-size: 14.5px; color: var(--muted); }
+.tl-desc { margin-top: 6px; font-size: 14.5px; line-height: 1.55; }
+.tl-sub { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.tl-sub li { display: grid; grid-template-columns: 38px minmax(0, 1fr); gap: 8px; font-size: 14.5px; line-height: 1.55; }
+.tl-sub span { font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); padding-top: 1px; font-variant-numeric: tabular-nums; }
+
+/* Footer */
+.footer { border-top: 1px solid var(--line); }
+.footer-inner {
+  display: flex; flex-wrap: wrap; justify-content: space-between;
+  gap: 6px 24px;
+  padding-block: 24px 32px;
+  font-size: 13.5px; color: var(--muted);
+}
+
+.to-top {
+  position: fixed;
+  right: 20px;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  z-index: 40;
+  width: 42px; height: 42px;
+  display: grid; place-items: center;
+  border: 1px solid var(--line); border-radius: 12px;
+  background: var(--bg); color: var(--ink);
+  box-shadow: var(--shadow);
+  cursor: pointer; padding: 0;
+}
+.to-top:hover { color: var(--accent); border-color: var(--accent-line); }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 900px) {
+  .layout { grid-template-columns: minmax(0, 1fr); gap: 40px; padding-block: 28px 56px; }
+  .sidebar { position: static; }
+  .id {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 18px; row-gap: 18px;
+    align-items: center;
+  }
+  .lede { font-size: clamp(21px, 5.9vw, 28px); }
+  .avatar { width: 96px; border-radius: 16px; }
+  .avatar .mono { font-size: 34px; }
+  .id-name { margin-top: 0; font-size: 25px; }
+  .id-role { margin-top: 4px; font-size: 14.5px; }
+  .id-loc { margin-top: 4px; font-size: 13.5px; }
+  .id-links { grid-column: 1 / -1; margin: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+  .id-links a {
+    margin: 0; padding: 5px 12px;
+    border: 1px solid var(--line); border-radius: 999px;
+    font-size: 14px;
+  }
+  .id-links a .i { width: 16px; height: 16px; }
+  .copy { margin-left: 2px; }
+}
+@media (max-width: 820px) {
+  .menu-btn { display: grid; }
+  .nav {
+    display: none;
+    position: absolute; top: 100%; left: 0; right: 0;
+    flex-direction: column; align-items: stretch; gap: 0;
+    padding: 6px clamp(16px, 4vw, 32px) 14px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--line);
+    box-shadow: var(--shadow);
+  }
+  .nav.open { display: flex; }
+  .nav a { padding: 11px 4px; font-size: 16px; border-bottom: 1px solid var(--line); border-radius: 0; }
+  .nav a:last-child { border-bottom: 0; }
+  .nav a.is-active::after { display: none; }
+  .nav a.is-active { color: var(--accent); }
+  .topbar-actions { margin-left: auto; }
+}
+@media (max-width: 600px) {
+  :root { --nav-h: 56px; --news-date: 62px; }
+  body { font-size: 15.5px; }
+  .brand { font-size: 17px; }
+  .btn-cv { padding: 0 10px; }
+  .section + .section { margin-top: 40px; padding-top: 34px; }
+  h2 { font-size: 25px; }
+  .news li { column-gap: 10px; }
+  .news li:not(:last-child)::after { left: calc(var(--news-date) + 10px + 7px - .5px); }
+  .news time { font-size: 12.5px; }
+  .layer { grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 18px 16px; }
+  .pub { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .pub-venue { flex-direction: row; flex-wrap: wrap; }
+  .xp-grid { grid-template-columns: minmax(0, 1fr); gap: 32px; }
+  .footer-inner { flex-direction: column; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+<script>
+(function () {
+  try {
+    var t = localStorage.getItem("zl-theme");
+    if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+  } catch (e) {}
+})();
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Person",
+  "name": "Ziyue (Alvin) Liu",
+  "alternateName": "Alvin Liu",
+  "jobTitle": "Ph.D. Student in Computer Science",
+  "affiliation": {"@type": "CollegeOrUniversity", "name": "University of California, Santa Barbara"},
+  "email": "mailto:ziyueliu@ucsb.edu",
+  "sameAs": [
+    "https://scholar.google.com/citations?user=7hVIDywAAAAJ",
+    "https://github.com/alvin-zyl",
+    "https://www.linkedin.com/in/ziyue-liu-54b660244/"
+  ]
+}
+</script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m3.5 7 8.5 6 8.5-6"/></symbol>
+  <symbol id="i-cap" viewBox="0 0 24 24"><path d="M2.5 9.5 12 5l9.5 4.5L12 14z"/><path d="M6.5 11.6V16c1.6 1.4 3.4 2 5.5 2s3.9-.6 5.5-2v-4.4"/><path d="M21.5 9.5V14"/></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24"><path d="m8.5 8-4.5 4 4.5 4"/><path d="m15.5 8 4.5 4-4.5 4"/><path d="m13.5 5.5-3 13"/></symbol>
+  <symbol id="i-id" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="15" rx="2.5"/><circle cx="9" cy="10.5" r="2.2"/><path d="M5.8 16.2c.7-1.7 1.8-2.5 3.2-2.5s2.5.8 3.2 2.5"/><path d="M14.5 9.5h3.5M14.5 13h3.5"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 16.5h6"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6.5-5.6-6.5-11.2a6.5 6.5 0 0 1 13 0C18.5 15.4 12 21 12 21z"/><circle cx="12" cy="9.8" r="2.3"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M15 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h3"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6 6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.2A8.2 8.2 0 1 1 9.8 4a6.6 6.6 0 0 0 10.2 10.2z"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+  <symbol id="i-ext" viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8"/></symbol>
+  <symbol id="i-page" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="15" rx="2.5"/><path d="M3 9h18"/><path d="M6.4 6.8h.01M9 6.8h.01"/><path d="M7.5 13h9M7.5 16h5.5"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10.5 9.4 4.2 2.6-4.2 2.6z"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 2.8l2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.2l-5.6 3 1.1-6.3-4.6-4.4 6.3-.9z"/></symbol>
+</svg>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="brand" href="#about">Ziyue (Alvin) Liu</a>
+    <nav class="nav" id="site-nav" aria-label="Sections">
+      <a href="#about">About</a>
+      <a href="#news">News</a>
+      <a href="#research">Research</a>
+      <a href="#publications">Publications</a>
+      <a href="#experience">Experience</a>
+    </nav>
+    <div class="topbar-actions">
+      <a class="btn-cv" href="cv.pdf" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-file"/></svg>CV</a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="Toggle dark mode">
+        <span class="i-moon-wrap"><svg class="i" aria-hidden="true"><use href="#i-moon"/></svg></span>
+        <span class="i-sun-wrap"><svg class="i" aria-hidden="true"><use href="#i-sun"/></svg></span>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="site-nav">
+        <svg class="i" aria-hidden="true"><use href="#i-menu"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap layout">
+  <!-- ============ SIDEBAR: photo, name, links ============
+       Photo: save a square photo as profile.jpg next to this file and it appears automatically.
+       CV: replace cv.pdf next to this file. -->
+  <aside class="sidebar" aria-label="Profile">
+    <div class="id">
+      <div class="avatar">
+        <canvas id="avatar-art" aria-hidden="true"></canvas>
+        <span class="mono" aria-hidden="true">ZL</span>
+        <img src="profile.jpg" alt="Ziyue (Alvin) Liu" decoding="async">
+      </div>
+      <div class="id-text">
+        <h1 class="id-name">Ziyue (Alvin) Liu</h1>
+        <p class="id-role">Ph.D. Student in Computer Science<br><a href="https://www.cs.ucsb.edu/" target="_blank" rel="noopener">UC Santa Barbara</a></p>
+        <p class="id-loc"><svg class="i" aria-hidden="true"><use href="#i-pin"/></svg>Santa Barbara, CA</p>
+      </div>
+      <ul class="id-links">
+        <li>
+          <a href="mailto:ziyueliu@ucsb.edu"><svg class="i" aria-hidden="true"><use href="#i-mail"/></svg><span id="email-text">ziyueliu@ucsb.edu</span></a>
+          <button class="copy" id="copy-email" type="button" aria-label="Copy email address"><svg class="i" aria-hidden="true"><use href="#i-copy"/></svg></button>
+          <span class="copy-tip" id="copy-tip" role="status" aria-live="polite"></span>
+        </li>
+        <li><a href="https://scholar.google.com/citations?user=7hVIDywAAAAJ&amp;hl=en" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-cap"/></svg><span>Google Scholar</span></a></li>
+        <li><a href="https://github.com/alvin-zyl" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-code"/></svg><span>GitHub</span></a></li>
+        <li><a href="https://www.linkedin.com/in/ziyue-liu-54b660244/" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-id"/></svg><span>LinkedIn</span></a></li>
+        <li><a href="cv.pdf" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-file"/></svg><span>CV (PDF)</span></a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main id="main" class="content">
+
+    <!-- ============ ABOUT ============
+         Edit the text inside the <p> tags. <strong>...</strong> makes text bold. -->
+    <section id="about" class="section" aria-labelledby="about-h">
+      <h2 id="about-h" class="sr-only">About</h2>
+      <p class="lede">I work on making LLM pre-training <em>cheaper, faster, and more reliable.</em></p>
+      <div class="prose">
+        <p>I am a Ph.D. student in Computer Science at the University of California, Santa Barbara, advised by <a href="https://web.ece.ucsb.edu/~zhengzhang/" target="_blank" rel="noopener">Prof. Zheng Zhang</a>. Before my Ph.D., I received an M.A. in Statistics from UCSB and a B.S. in Statistics from Nankai University.</p>
+        <p>My research covers the pre-training stack end to end: low-rank model architectures that reduce compute, Muon-style optimizers that train faster, and scalable, fault-tolerant training systems designed for clusters of 100k+ GPUs.</p>
+        <p>Most recently, I was a Software Engineer Intern at <strong>Google Cloud</strong>. Before that, I was a visiting student at <strong>Argonne National Laboratory</strong> and a research intern at <strong>Cadence Design Systems</strong>.</p>
+      </div>
+      <div class="callout" role="note">
+        <span class="pulse" aria-hidden="true"></span>
+        <p><strong>I am on the job market</strong> for full-time industry research and engineering roles starting in 2027. Feel free to reach out at <a href="mailto:ziyueliu@ucsb.edu">ziyueliu@ucsb.edu</a>.</p>
+      </div>
+    </section>
+
+    <!-- ============ NEWS ============
+         Shown in a scrolling window. One <li> per item, newest first. To add an item, copy the first <li> line,
+         paste it above, and change the date (both datetime="" and the visible text) and the sentence.
+         <a class="ref" href="#pub-xxx">Name</a> links to a paper below by its id. -->
+    <section id="news" class="section" aria-labelledby="news-h">
+      <div class="section-head"><h2 id="news-h">News</h2><span class="section-note">Scroll for earlier updates</span></div>
+      <div class="news-box" id="news-box" tabindex="0" role="region" aria-label="News, newest first">
+      <ul class="news">
+        <li><time datetime="2026-09">2026.09</time><span class="dot" aria-hidden="true"></span><p><a class="ref" href="#pub-recover">ReCoVer</a> was accepted to NeurIPS 2026.</p></li>
+        <li><time datetime="2026-08">2026.08</time><span class="dot" aria-hidden="true"></span><p><a class="ref" href="#pub-muon2">Muon²</a> was accepted to EMNLP 2026 as an <span class="hl">oral</span> presentation.</p></li>
+        <li><time datetime="2026-07">2026.07</time><span class="dot" aria-hidden="true"></span><p><a class="ref" href="#pub-muonq">MuonQ</a> was accepted to COLM 2026.</p></li>
+        <li><time datetime="2026-06">2026.06</time><span class="dot" aria-hidden="true"></span><p>Started my internship at <strong>Google Cloud</strong>, on MoE adapter tuning and serving.</p></li>
+        <li><time datetime="2026-01">2026.01</time><span class="dot" aria-hidden="true"></span><p><a class="ref" href="#pub-boost">BOOST</a> was accepted to MLSys 2026.</p></li>
+        <li><time datetime="2026-01">2026.01</time><span class="dot" aria-hidden="true"></span><p><a class="ref" href="#pub-deepoheat-v1">DeepOHeat-v1</a> was published in IEEE TCPMT.</p></li>
+        <li><time datetime="2025-09">2025.09</time><span class="dot" aria-hidden="true"></span><p><a class="ref" href="#pub-lax">LaX</a> was accepted to NeurIPS 2025.</p></li>
+        <li><time datetime="2025-08">2025.08</time><span class="dot" aria-hidden="true"></span><p><a class="ref" href="#pub-cola">CoLA</a> (<span class="hl">oral</span>) and <a class="ref" href="#pub-quzo">QuZO</a> were accepted to EMNLP 2025.</p></li>
+        <li><time datetime="2025-04">2025.04</time><span class="dot" aria-hidden="true"></span><p>Visiting student at <strong>Argonne National Laboratory</strong>, on fault-tolerant LLM pre-training.</p></li>
+        <li><time datetime="2024-12">2024.12</time><span class="dot" aria-hidden="true"></span><p><a class="ref" href="#pub-seponet">SepONet</a> was published in TMLR.</p></li>
+        <li><time datetime="2024-09">2024.09</time><span class="dot" aria-hidden="true"></span><p><a class="ref" href="#pub-comera">CoMERA</a> was accepted to NeurIPS 2024.</p></li>
+        <li><time datetime="2024-06">2024.06</time><span class="dot" aria-hidden="true"></span><p>Third research internship at <strong>Cadence</strong>, on data center thermal and CFD modeling.</p></li>
+        <li><time datetime="2023-09">2023.09</time><span class="dot" aria-hidden="true"></span><p>Started my <strong>Ph.D. in Computer Science</strong> at UCSB.</p></li>
+        <li><time datetime="2023-04">2023.04</time><span class="dot" aria-hidden="true"></span><p>Back at <strong>Cadence</strong> as a research intern, on automotive aerodynamic simulation.</p></li>
+        <li><time datetime="2023-03">2023.03</time><span class="dot" aria-hidden="true"></span><p>Received my M.A. in Statistics from UCSB.</p></li>
+        <li><time datetime="2023-02">2023.02</time><span class="dot" aria-hidden="true"></span><p><a class="ref" href="#pub-deepoheat">DeepOHeat</a> was accepted to DAC 2023.</p></li>
+        <li><time datetime="2022-06">2022.06</time><span class="dot" aria-hidden="true"></span><p><a class="ref" href="#pub-ttpinn">TT-PINN</a> was accepted to the ICML 2022 HAET workshop.</p></li>
+        <li><time datetime="2022-06">2022.06</time><span class="dot" aria-hidden="true"></span><p>First research internship at <strong>Cadence</strong>, on 3D-IC thermal simulation.</p></li>
+        <li><time datetime="2022-01">2022.01</time><span class="dot" aria-hidden="true"></span><p>Joined <a href="https://web.ece.ucsb.edu/~zhengzhang/" target="_blank" rel="noopener">Prof. Zheng Zhang</a>'s group at UCSB.</p></li>
+        <li><time datetime="2021-09">2021.09</time><span class="dot" aria-hidden="true"></span><p>Came to <strong>UCSB</strong> to start my M.A. in Statistics.</p></li>
+      </ul>
+      </div>
+    </section>
+
+    <!-- ============ RESEARCH ============
+         Three layers. Each chip links to a paper below by its id (href="#pub-..."). -->
+    <section id="research" class="section" aria-labelledby="research-h">
+      <div class="section-head"><h2 id="research-h">Research</h2></div>
+      <p class="section-intro">My current research is on efficient LLM pre-training, across three layers of the training stack. Earlier in my graduate studies, I worked on scientific machine learning, building efficient neural PDE solvers with applications in 3D-IC thermal design.</p>
+      <p class="group-label">LLM pre-training stack</p>
+      <div class="stack">
+        <div class="layer" data-level="1">
+          <p class="layer-label"><svg class="glyph" viewBox="0 0 24 20" aria-hidden="true"><rect x="2" y="1" width="20" height="4.6" rx="1.5"/><rect x="2" y="7.7" width="20" height="4.6" rx="1.5"/><rect x="2" y="14.4" width="20" height="4.6" rx="1.5"/></svg>Architecture</p>
+          <div class="layer-body">
+            <p>Low-rank and tensor-compressed models that cut the compute and memory cost of pre-training while preserving quality.</p>
+            <div class="chips">
+              <a class="chip" href="#pub-cola">CoLA <span>EMNLP'25</span></a>
+              <a class="chip" href="#pub-lax">LaX <span>NeurIPS'25</span></a>
+              <a class="chip" href="#pub-comera">CoMERA <span>NeurIPS'24</span></a>
+            </div>
+          </div>
+        </div>
+        <div class="layer" data-level="2">
+          <p class="layer-label"><svg class="glyph" viewBox="0 0 24 20" aria-hidden="true"><rect x="2" y="1" width="20" height="4.6" rx="1.5"/><rect x="2" y="7.7" width="20" height="4.6" rx="1.5"/><rect x="2" y="14.4" width="20" height="4.6" rx="1.5"/></svg>Optimization</p>
+          <div class="layer-body">
+            <p>Muon-based optimizers that further speed up convergence, reduce orthogonalization cost, and improve quality.</p>
+            <div class="chips">
+              <a class="chip" href="#pub-muon2">Muon² <span>EMNLP'26</span></a>
+              <a class="chip" href="#pub-muonq">MuonQ <span>COLM'26</span></a>
+              <a class="chip" href="#pub-muonplus">Muon+ <span>Under review</span></a>
+              <a class="chip" href="#pub-teon">TEON <span>Under review</span></a>
+            </div>
+          </div>
+        </div>
+        <div class="layer" data-level="3">
+          <p class="layer-label"><svg class="glyph" viewBox="0 0 24 20" aria-hidden="true"><rect x="2" y="1" width="20" height="4.6" rx="1.5"/><rect x="2" y="7.7" width="20" height="4.6" rx="1.5"/><rect x="2" y="14.4" width="20" height="4.6" rx="1.5"/></svg>System</p>
+          <div class="layer-body">
+            <p>Scalable training for low-rank models, and fault-tolerant pre-training that avoids system stalling on frequent restarts at O(100k+) scale.</p>
+            <div class="chips">
+              <a class="chip" href="#pub-boost">BOOST <span>MLSys'26</span></a>
+              <a class="chip" href="#pub-recover">ReCoVer <span>NeurIPS'26</span></a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="group-label">Scientific machine learning</p>
+      <div class="stack">
+        <div class="layer" data-level="sci">
+          <p class="layer-label"><svg class="glyph wave" viewBox="0 0 24 20" aria-hidden="true"><path d="M2 10c2.2-5.5 4.4-5.5 6.6 0s4.4 5.5 6.6 0 4.4-5.5 6.6 0"/></svg>PDE solvers</p>
+          <div class="layer-body">
+            <p>Physics-informed neural networks and neural operators for fast PDE solving, applied to 3D-IC thermal simulation and design.</p>
+            <div class="chips">
+              <a class="chip" href="#pub-ttpinn">TT-PINN <span>ICML'22 Workshop</span></a>
+              <a class="chip" href="#pub-deepoheat">DeepOHeat <span>DAC'23</span></a>
+              <a class="chip" href="#pub-seponet">SepONet <span>TMLR'24</span></a>
+              <a class="chip" href="#pub-deepoheat-v1">DeepOHeat-v1 <span>TCPMT'26</span></a>
+              <a class="chip" href="#pub-deepoheat-v2">DeepOHeat-v2 <span>Under review</span></a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="publications" class="section" aria-labelledby="pubs-h">
+      <div class="section-head">
+        <h2 id="pubs-h">Selected Publications</h2>
+        <a href="https://scholar.google.com/citations?user=7hVIDywAAAAJ&amp;hl=en" target="_blank" rel="noopener">Full list on Google Scholar<svg class="i" aria-hidden="true"><use href="#i-ext"/></svg></a>
+      </div>
+      <div class="pub-tools">
+        <div class="filters" role="group" aria-label="Filter publications">
+          <button class="filter is-on" type="button" data-filter="hl" aria-pressed="true">Highlights <span>7</span></button>
+          <button class="filter" type="button" data-filter="first" aria-pressed="false">First author <span>7</span></button>
+          <button class="filter" type="button" data-filter="arch" aria-pressed="false">Architecture <span>3</span></button>
+          <button class="filter" type="button" data-filter="opt" aria-pressed="false">Optimization <span>5</span></button>
+          <button class="filter" type="button" data-filter="sys" aria-pressed="false">System <span>2</span></button>
+          <button class="filter" type="button" data-filter="sciml" aria-pressed="false">Scientific ML <span>4</span></button>
+        </div>
+        <p class="legend"><span><svg class="i i-fill star" aria-hidden="true"><use href="#i-star"/></svg>First or co-first author</span><span>* Equal contribution</span></p>
+      </div>
+
+      <!-- ============ PUBLICATIONS ============
+           One <li class="pub"> block per paper.
+           Tabs: "Highlights" is shown by default and follows data-hl="1", "2", ... ;
+           every other tab lists its papers newest first by data-date="YYYY-MM".
+           To add a paper: copy a whole block (from <li class="pub" to its </li>), give it a new unique id,
+           set data-date, and set data-tags to any of: hl (Highlights, also add data-hl), first (first or co-first author),
+           arch, opt, sys, sciml (research area). Tab counts update automatically.
+           Venue tag styles: class="tag" (normal), class="tag oral" (gold), class="tag review" (dashed), class="tag ws" (workshop).
+           The star before the title marks first-author papers; delete that <svg ...>...</svg> if not first author.
+           Your name: <span class="me">Ziyue Liu</span>. Equal contribution: <sup>*</sup>. -->
+      <ul class="pubs">
+        <li class="pub" id="pub-recover" data-tags="hl first sys" data-date="2026-09" data-hl="1">
+          <div class="pub-venue"><span class="tag">NeurIPS 2026</span></div>
+          <div class="pub-main">
+            <h3 class="pub-title"><svg class="i i-fill star" role="img" aria-label="First author"><use href="#i-star"/></svg><a href="https://arxiv.org/abs/2605.11215" target="_blank" rel="noopener">ReCoVer: Resilient LLM Pre-Training System via Fault-Tolerant Collective and Versatile Workload</a></h3>
+            <p class="pub-authors"><span class="me">Ziyue Liu</span>, Zhengyang Wang, Ruijie Zhang, Avinash Maurya, Hui Zhou, Paul Hovland, Sheng Di, Franck Cappello, Bogdan Nicolae, Zheng Zhang</p>
+            <p class="pub-tldr">Keeps pre-training on track through GPU failures without restarting the job.</p>
+            <p class="pub-links">
+              <a class="plink proj" href="recover/"><svg class="i" aria-hidden="true"><use href="#i-page"/></svg>Project page</a>
+              <a class="plink" href="https://arxiv.org/abs/2605.11215" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-file"/></svg>Paper</a>
+            </p>
+          </div>
+        </li>
+
+        <li class="pub" id="pub-muon2" data-tags="hl first opt" data-date="2026-08" data-hl="2">
+          <div class="pub-venue"><span class="tag">EMNLP 2026</span><span class="tag oral">Oral</span></div>
+          <div class="pub-main">
+            <h3 class="pub-title"><svg class="i i-fill star" role="img" aria-label="First author"><use href="#i-star"/></svg><a href="https://arxiv.org/abs/2604.09967" target="_blank" rel="noopener">Muon²: Boosting Muon via Adaptive Second-Moment Preconditioning</a></h3>
+            <p class="pub-authors"><span class="me">Ziyue Liu</span>, Ruijie Zhang, Zhengyang Wang, Yequan Zhao, Yupeng Su, Zi Yang, Zheng Zhang</p>
+            <p class="pub-tldr">Adaptive second-moment preconditioning that makes Muon converge faster at lower cost.</p>
+            <p class="pub-links">
+              <a class="plink proj" href="muon2/"><svg class="i" aria-hidden="true"><use href="#i-page"/></svg>Project page</a>
+              <a class="plink" href="https://arxiv.org/abs/2604.09967" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-file"/></svg>Paper</a>
+            </p>
+          </div>
+        </li>
+
+        <li class="pub" id="pub-cola" data-tags="hl first arch" data-date="2025-08" data-hl="3">
+          <div class="pub-venue"><span class="tag">EMNLP 2025</span><span class="tag oral">Oral</span></div>
+          <div class="pub-main">
+            <h3 class="pub-title"><svg class="i i-fill star" role="img" aria-label="First author"><use href="#i-star"/></svg><a href="https://aclanthology.org/2025.emnlp-main.230/" target="_blank" rel="noopener">CoLA: Compute-Efficient Pre-Training of LLMs via Low-Rank Activation</a></h3>
+            <p class="pub-authors"><span class="me">Ziyue Liu<sup>*</sup></span>, Ruijie Zhang<sup>*</sup>, Zhengyang Wang<sup>*</sup>, Mingsong Yan, Zi Yang, Paul Hovland, Bogdan Nicolae, Franck Cappello, Sui Tang, Zheng Zhang</p>
+            <p class="pub-tldr">Low-rank activations that cut model size and compute while matching full-rank quality.</p>
+            <p class="pub-links">
+              <a class="plink proj" href="cola/"><svg class="i" aria-hidden="true"><use href="#i-page"/></svg>Project page</a>
+              <a class="plink" href="https://aclanthology.org/2025.emnlp-main.230/" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-file"/></svg>Paper</a>
+              <a class="plink" href="https://github.com/alvin-zyl/CoLA" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-code"/></svg>Code</a>
+              <a class="plink" href="https://us06web.zoom.us/rec/share/w7j_Ng_huVt9Eip-jOsB4cfw2xczpIVjYbKu2SRdbAiMkkxryRPTDqiE_25Hi5I5.S2f836Ct4WhB3B6l?startTime=1762330818000" target="_blank" rel="noopener" title="EMNLP 2025 session recording. The CoLA talk is the third chapter and starts at 14:11."><svg class="i" aria-hidden="true"><use href="#i-play"/></svg>Talk<span class="t">from 14:11</span></a>
+            </p>
+          </div>
+        </li>
+
+        <li class="pub" id="pub-boost" data-tags="hl first sys" data-date="2026-01" data-hl="4">
+          <div class="pub-venue"><span class="tag">MLSys 2026</span></div>
+          <div class="pub-main">
+            <h3 class="pub-title"><svg class="i i-fill star" role="img" aria-label="Co-first author"><use href="#i-star"/></svg><a href="https://proceedings.mlsys.org/paper_files/paper/2026/hash/127e7093c38a45290524237be8eb39c5-Abstract-Conference.html" target="_blank" rel="noopener">BOOST: BOttleneck-Optimized Scalable Training Framework for Low-Rank Large Language Models</a></h3>
+            <p class="pub-authors">Zhengyang Wang<sup>*</sup>, <span class="me">Ziyue Liu<sup>*</sup></span>, Ruijie Zhang, Avinash Maurya, Bogdan Nicolae, Paul Hovland, Franck Cappello, Zheng Zhang</p>
+            <p class="pub-tldr">Bottleneck-aware parallelism that makes large-scale low-rank training faster than full-rank.</p>
+            <p class="pub-links">
+              <a class="plink" href="https://proceedings.mlsys.org/paper_files/paper/2026/hash/127e7093c38a45290524237be8eb39c5-Abstract-Conference.html" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-file"/></svg>Paper</a>
+              <a class="plink" href="https://github.com/Arcana-2236/BOOST" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-code"/></svg>Code</a>
+            </p>
+          </div>
+        </li>
+
+        <li class="pub" id="pub-lax" data-tags="hl first arch" data-date="2025-09" data-hl="5">
+          <div class="pub-venue"><span class="tag">NeurIPS 2025</span></div>
+          <div class="pub-main">
+            <h3 class="pub-title"><svg class="i i-fill star" role="img" aria-label="Co-first author"><use href="#i-star"/></svg><a href="https://proceedings.neurips.cc/paper_files/paper/2025/hash/d2706f9149856b6f7016ebf270dd9f25-Abstract-Conference.html" target="_blank" rel="noopener">LaX: Boosting Low-Rank Training of Foundation Models via Latent Crossing</a></h3>
+            <p class="pub-authors">Ruijie Zhang<sup>*</sup>, <span class="me">Ziyue Liu<sup>*</sup></span>, Zhengyang Wang, Zheng Zhang</p>
+            <p class="pub-tldr">A plug-and-play module that helps low-rank models match full-rank quality.</p>
+            <p class="pub-links">
+              <a class="plink" href="https://proceedings.neurips.cc/paper_files/paper/2025/hash/d2706f9149856b6f7016ebf270dd9f25-Abstract-Conference.html" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-file"/></svg>Paper</a>
+              <a class="plink" href="https://github.com/K1seki221/Latent_Crossing" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-code"/></svg>Code</a>
+            </p>
+          </div>
+        </li>
+
+        <li class="pub" id="pub-comera" data-tags="hl arch" data-date="2024-09" data-hl="6">
+          <div class="pub-venue"><span class="tag">NeurIPS 2024</span></div>
+          <div class="pub-main">
+            <h3 class="pub-title"><a href="https://proceedings.neurips.cc/paper_files/paper/2024/hash/8d35d225230a9d77b29c1dd300e48ad9-Abstract-Conference.html" target="_blank" rel="noopener">CoMERA: Computing- and Memory-Efficient Training via Rank-Adaptive Tensor Optimization</a></h3>
+            <p class="pub-authors">Zi Yang, <span class="me">Ziyue Liu</span>, Samridhi Choudhary, Xinfeng Xie, Cao Gao, Siegfried Kunzmann, Zheng Zhang</p>
+            <p class="pub-tldr">Rank-adaptive tensor-compressed training that reduces both memory and runtime on GPUs.</p>
+            <p class="pub-links">
+              <a class="plink" href="https://proceedings.neurips.cc/paper_files/paper/2024/hash/8d35d225230a9d77b29c1dd300e48ad9-Abstract-Conference.html" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-file"/></svg>Paper</a>
+              <a class="plink" href="https://github.com/ziyangjoy/CoMERA" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-code"/></svg>Code</a>
+            </p>
+          </div>
+        </li>
+
+        <li class="pub" id="pub-deepoheat" data-tags="hl first sciml" data-date="2023-02" data-hl="7">
+          <div class="pub-venue"><span class="tag">DAC 2023</span></div>
+          <div class="pub-main">
+            <h3 class="pub-title"><svg class="i i-fill star" role="img" aria-label="First author"><use href="#i-star"/></svg><a href="https://ieeexplore.ieee.org/document/10247998" target="_blank" rel="noopener">DeepOHeat: Operator Learning-based Ultra-fast Thermal Simulation in 3D-IC Design</a></h3>
+            <p class="pub-authors"><span class="me">Ziyue Liu</span>, Yixing Li, Jing Hu, Xinling Yu, Shinyu Shiau, Xin Ai, Zhiyu Zeng, Zheng Zhang</p>
+            <p class="pub-tldr">Operator learning that makes 3D-IC thermal simulation orders of magnitude faster.</p>
+            <p class="pub-links">
+              <a class="plink" href="https://ieeexplore.ieee.org/document/10247998" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-file"/></svg>Paper</a>
+              <a class="plink" href="https://github.com/Cadence-Celsius/DeepOHeat" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-code"/></svg>Code</a>
+            </p>
+          </div>
+        </li>
+
+        <li class="pub" id="pub-muonq" data-tags="opt" data-date="2026-07" hidden>
+          <div class="pub-venue"><span class="tag">COLM 2026</span></div>
+          <div class="pub-main">
+            <h3 class="pub-title"><a href="https://openreview.net/forum?id=8FxB2bwBjw" target="_blank" rel="noopener">MuonQ: Enhancing Low-Bit Muon Quantization via Directional Fidelity Optimization</a></h3>
+            <p class="pub-authors">Yupeng Su, Ruijie Zhang, <span class="me">Ziyue Liu</span>, Yequan Zhao, Zheng Zhang</p>
+            <p class="pub-tldr">Quantizes Muon's optimizer states to low bits while closely matching full-precision training.</p>
+            <p class="pub-links">
+              <a class="plink" href="https://openreview.net/forum?id=8FxB2bwBjw" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-file"/></svg>Paper</a>
+              <a class="plink" href="https://github.com/YupengSu/MuonQ" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-code"/></svg>Code</a>
+            </p>
+          </div>
+        </li>
+
+        <li class="pub" id="pub-muonplus" data-tags="opt" data-date="2026-02" hidden>
+          <div class="pub-venue"><span class="tag review">Under review</span></div>
+          <div class="pub-main">
+            <h3 class="pub-title"><a href="https://arxiv.org/abs/2602.21545" target="_blank" rel="noopener">Muon+: Towards More Effective Muon via One Additional Normalization Step for LLM Pre-training</a></h3>
+            <p class="pub-authors">Ruijie Zhang, Yequan Zhao, <span class="me">Ziyue Liu</span>, Zhengyang Wang, Yupeng Su, Liyan Tan, Zheng Zhang</p>
+            <p class="pub-tldr">One extra normalization step after orthogonalization that consistently improves Muon.</p>
+            <p class="pub-links">
+              <a class="plink" href="https://arxiv.org/abs/2602.21545" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-file"/></svg>Paper</a>
+              <a class="plink" href="https://github.com/K1seki221/MuonPlus" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-code"/></svg>Code</a>
+            </p>
+          </div>
+        </li>
+
+        <li class="pub" id="pub-deepoheat-v1" data-tags="sciml" data-date="2026-01" hidden>
+          <div class="pub-venue"><span class="tag">TCPMT 2026</span></div>
+          <div class="pub-main">
+            <h3 class="pub-title"><a href="https://ieeexplore.ieee.org/document/11197553" target="_blank" rel="noopener">DeepOHeat-v1: Efficient Operator Learning for Fast and Trustworthy Thermal Simulation and Optimization in 3D-IC Design</a></h3>
+            <p class="pub-authors">Xinling Yu, <span class="me">Ziyue Liu</span>, Hai Li, Yixing Li, Xin Ai, Zhiyu Zeng, Ian Young, Zheng Zhang</p>
+            <p class="pub-tldr">A more accurate, efficient, and trustworthy DeepOHeat for 3D-IC thermal design.</p>
+            <p class="pub-links">
+              <a class="plink" href="https://ieeexplore.ieee.org/document/11197553" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-file"/></svg>Paper</a>
+              <a class="plink" href="https://github.com/xlyu0127/DeepOHeat-v1" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-code"/></svg>Code</a>
+            </p>
+          </div>
+        </li>
+        <li class="pub" id="pub-deepoheat-v2" data-tags="sciml" data-date="2026-08" hidden>
+          <div class="pub-venue"><span class="tag review">Under review</span></div>
+          <div class="pub-main">
+            <h3 class="pub-title"><a href="https://arxiv.org/abs/2608.16080" target="_blank" rel="noopener">DeepOHeat-v2: Self-Improving Operator Learning for Fast and Trustworthy Thermal Optimization in 3D-IC Design</a></h3>
+            <p class="pub-authors">Xinling Yu, Yixing Li, <span class="me">Ziyue Liu</span>, Xin Ai, Zhiyu Zeng, Hai Li, Zheng Zhang</p>
+            <p class="pub-tldr">A self-improving DeepOHeat for thermal optimization of high-contrast multi-die 3D-ICs.</p>
+            <p class="pub-links">
+              <a class="plink" href="https://arxiv.org/abs/2608.16080" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-file"/></svg>Paper</a>
+            </p>
+          </div>
+        </li>
+
+        <li class="pub" id="pub-teon" data-tags="opt" data-date="2026-01" hidden>
+          <div class="pub-venue"><span class="tag review">Under review</span></div>
+          <div class="pub-main">
+            <h3 class="pub-title"><a href="https://arxiv.org/abs/2601.23261" target="_blank" rel="noopener">TEON: Tensorized Orthonormalization Beyond Layer-Wise Muon for Large Language Model Pre-Training</a></h3>
+            <p class="pub-authors">Ruijie Zhang, Yequan Zhao, <span class="me">Ziyue Liu</span>, Zhengyang Wang, Dongyang Li, Yupeng Su, Sijia Liu, Zheng Zhang</p>
+            <p class="pub-tldr">Extends Muon's orthogonalization from single layers to a tensor across layers.</p>
+            <p class="pub-links">
+              <a class="plink" href="https://arxiv.org/abs/2601.23261" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-file"/></svg>Paper</a>
+            </p>
+          </div>
+        </li>
+
+        <li class="pub" id="pub-quzo" data-tags="opt" data-date="2025-08" hidden>
+          <div class="pub-venue"><span class="tag">EMNLP 2025</span></div>
+          <div class="pub-main">
+            <h3 class="pub-title"><a href="https://aclanthology.org/2025.emnlp-main.271/" target="_blank" rel="noopener">QuZO: Quantized Zeroth-Order Fine-Tuning for Large Language Models</a></h3>
+            <p class="pub-authors">Jiajun Zhou, Yifan Yang, Kai Zhen, <span class="me">Ziyue Liu</span>, Yequan Zhao, Ershad Banijamali, Athanasios Mouchtaris, Ngai Wong, Zheng Zhang</p>
+            <p class="pub-tldr">Memory-efficient fine-tuning of quantized LLMs using only low-bit forward passes.</p>
+            <p class="pub-links">
+              <a class="plink" href="https://aclanthology.org/2025.emnlp-main.271/" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-file"/></svg>Paper</a>
+              <a class="plink" href="https://github.com/lloo099/QuZO" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-code"/></svg>Code</a>
+            </p>
+          </div>
+        </li>
+
+        <li class="pub" id="pub-seponet" data-tags="sciml" data-date="2024-12" hidden>
+          <div class="pub-venue"><span class="tag">TMLR 2024</span></div>
+          <div class="pub-main">
+            <h3 class="pub-title"><a href="https://openreview.net/forum?id=RYtJmFDAxv" target="_blank" rel="noopener">Separable Operator Networks</a></h3>
+            <p class="pub-authors">Xinling Yu, Sean Hooten, <span class="me">Ziyue Liu</span>, Yequan Zhao, Marco Fiorentino, Thomas Van Vaerenbergh, Zheng Zhang</p>
+            <p class="pub-tldr">Faster, more memory-efficient physics-informed operator learning with separable networks.</p>
+            <p class="pub-links">
+              <a class="plink" href="https://openreview.net/forum?id=RYtJmFDAxv" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-file"/></svg>Paper</a>
+              <a class="plink" href="https://github.com/HewlettPackard/separable-operator-networks" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-code"/></svg>Code</a>
+            </p>
+          </div>
+        </li>
+
+        <li class="pub" id="pub-ttpinn" data-tags="first sciml" data-date="2022-06" hidden>
+          <div class="pub-venue"><span class="tag">ICML 2022</span><span class="tag ws">Workshop</span></div>
+          <div class="pub-main">
+            <h3 class="pub-title"><svg class="i i-fill star" role="img" aria-label="Co-first author"><use href="#i-star"/></svg><a href="https://arxiv.org/abs/2207.01751" target="_blank" rel="noopener">TT-PINN: A Tensor-Compressed Neural PDE Solver for Edge Computing</a></h3>
+            <p class="pub-authors"><span class="me">Ziyue Liu<sup>*</sup></span>, Xinling Yu<sup>*</sup>, Zheng Zhang</p>
+            <p class="pub-tldr">Tensor-train compressed PINNs that can be trained on edge devices.</p>
+            <p class="pub-links">
+              <a class="plink" href="https://arxiv.org/abs/2207.01751" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-file"/></svg>Paper</a>
+            </p>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <!-- ============ EXPERIENCE AND EDUCATION ============
+         One <li> per entry inside each <ul class="tl">. Copy an entry to add one. -->
+    <section id="experience" class="section" aria-labelledby="xp-h">
+      <div class="section-head"><h2 id="xp-h">Experience</h2></div>
+      <div class="xp-grid">
+        <div>
+          <h3 class="col-title">Industry and research</h3>
+          <ul class="tl">
+            <li>
+              <p class="tl-date">Jun 2026 – Sep 2026</p>
+              <p class="tl-title">Software Engineer Intern</p>
+              <p class="tl-org">Google Cloud · Sunnyvale, CA</p>
+              <p class="tl-desc">Efficient MoE adapter tuning and multi-tenant serving.</p>
+            </li>
+            <li>
+              <p class="tl-date">Apr 2025 – Sep 2025</p>
+              <p class="tl-title">Visiting Student</p>
+              <p class="tl-org">Argonne National Laboratory · Lemont, IL</p>
+              <p class="tl-desc">Fault-tolerant LLM pre-training.</p>
+            </li>
+            <li>
+              <p class="tl-date">Jun 2022 – Sep 2024 · 3 terms</p>
+              <p class="tl-title">Research Intern</p>
+              <p class="tl-org">Cadence Design Systems · Austin, TX</p>
+              <ul class="tl-sub">
+                <li><span>2024</span><p>Data-driven modeling of real-world data center thermal and CFD simulations.</p></li>
+                <li><span>2023</span><p>Data-driven modeling of large-scale automotive aerodynamic simulations.</p></li>
+                <li><span>2022</span><p>Physics-informed operator learning for 3D-IC thermal simulations.</p></li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="col-title">Education</h3>
+          <ul class="tl">
+            <li>
+              <p class="tl-date">2023 – 2027 (expected)</p>
+              <p class="tl-title">Ph.D. in Computer Science</p>
+              <p class="tl-org">University of California, Santa Barbara</p>
+              <p class="tl-desc">Advisor: <a href="https://web.ece.ucsb.edu/~zhengzhang/" target="_blank" rel="noopener">Prof. Zheng Zhang</a></p>
+            </li>
+            <li>
+              <p class="tl-date">2021 – 2023</p>
+              <p class="tl-title">M.A. in Statistics</p>
+              <p class="tl-org">University of California, Santa Barbara</p>
+            </li>
+            <li>
+              <p class="tl-date">2016 – 2020</p>
+              <p class="tl-title">B.S. in Statistics</p>
+              <p class="tl-org">Nankai University, School of Mathematical Sciences</p>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ============ FOOTER: update "Last updated" when you change the page ============ -->
+<footer class="footer">
+  <div class="wrap footer-inner">
+    <span>© 2026 Ziyue (Alvin) Liu</span>
+    <span>Last updated September 2026</span>
+  </div>
+</footer>
+
+<button class="to-top" id="to-top" type="button" aria-label="Back to top" hidden><svg class="i" aria-hidden="true"><use href="#i-up"/></svg></button>
+
+<script>
+(function () {
+  var root = document.documentElement;
+  var darkQuery = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+
+  function effectiveTheme() {
+    var t = root.getAttribute("data-theme");
+    if (t === "light" || t === "dark") return t;
+    return darkQuery && darkQuery.matches ? "dark" : "light";
+  }
+
+  /* Theme toggle */
+  var themeBtn = document.getElementById("theme-toggle");
+  function syncThemeLabel() {
+    themeBtn.setAttribute("aria-label", effectiveTheme() === "dark" ? "Switch to light mode" : "Switch to dark mode");
+  }
+  themeBtn.addEventListener("click", function () {
+    var next = effectiveTheme() === "dark" ? "light" : "dark";
+    root.setAttribute("data-theme", next);
+    try { localStorage.setItem("zl-theme", next); } catch (e) {}
+  });
+
+  /* Avatar placeholder: a rank-2 matrix drawn as a heatmap, shown until a photo is added */
+  var canvas = document.getElementById("avatar-art");
+  function drawAvatar() {
+    if (!canvas) return;
+    var size = canvas.parentElement.clientWidth;
+    if (!size) return;
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.round(size * dpr);
+    canvas.height = Math.round(size * dpr);
+    var ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, size, size);
+    var color = getComputedStyle(root).getPropertyValue("--accent").trim() || "#1b4d90";
+    var n = 11, pad = size * 0.08, gap = size * 0.014;
+    var cell = (size - 2 * pad - gap * (n - 1)) / n;
+    var u1 = [], v1 = [], u2 = [], v2 = [], vals = [], lo = Infinity, hi = -Infinity, i, j;
+    for (i = 0; i < n; i++) {
+      var t = i / (n - 1);
+      u1.push(0.35 + 0.65 * Math.sin(Math.PI * t));
+      v1.push(0.4 + 0.6 * Math.cos(Math.PI * (t - 0.3)));
+      u2.push(Math.cos(2 * Math.PI * t));
+      v2.push(Math.sin(2 * Math.PI * t + 0.8));
+    }
+    for (i = 0; i < n; i++) for (j = 0; j < n; j++) {
+      var m = u1[i] * v1[j] + 0.45 * u2[i] * v2[j];
+      vals.push(m); lo = Math.min(lo, m); hi = Math.max(hi, m);
+    }
+    ctx.fillStyle = color;
+    for (i = 0; i < n; i++) for (j = 0; j < n; j++) {
+      var v = (vals[i * n + j] - lo) / ((hi - lo) || 1);
+      ctx.globalAlpha = 0.05 + 0.26 * v * v;
+      var x = pad + j * (cell + gap), y = pad + i * (cell + gap);
+      if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(x, y, cell, cell, Math.min(3, cell * 0.22)); ctx.fill(); }
+      else { ctx.fillRect(x, y, cell, cell); }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function onThemeChange() { syncThemeLabel(); drawAvatar(); }
+  syncThemeLabel();
+  drawAvatar();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(drawAvatar);
+  new MutationObserver(onThemeChange).observe(root, { attributes: true, attributeFilter: ["data-theme"] });
+  if (darkQuery) {
+    if (darkQuery.addEventListener) darkQuery.addEventListener("change", onThemeChange);
+    else if (darkQuery.addListener) darkQuery.addListener(onThemeChange);
+  }
+  var resizeTimer;
+  window.addEventListener("resize", function () { clearTimeout(resizeTimer); resizeTimer = setTimeout(drawAvatar, 120); });
+
+  /* Profile photo: shown only if profile.jpg exists next to the page */
+  var photo = document.querySelector(".avatar img");
+  if (photo) {
+    var showPhoto = function () { photo.classList.add("is-loaded"); };
+    var dropPhoto = function () { photo.remove(); };
+    if (photo.complete) { photo.naturalWidth > 0 ? showPhoto() : dropPhoto(); }
+    else { photo.addEventListener("load", showPhoto); photo.addEventListener("error", dropPhoto); }
+  }
+
+  /* Mobile menu */
+  var menuBtn = document.getElementById("menu-btn");
+  var nav = document.getElementById("site-nav");
+  function setMenu(open) {
+    nav.classList.toggle("open", open);
+    menuBtn.setAttribute("aria-expanded", open ? "true" : "false");
+    menuBtn.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+  }
+  menuBtn.addEventListener("click", function () { setMenu(!nav.classList.contains("open")); });
+  nav.addEventListener("click", function (e) { if (e.target.closest("a")) setMenu(false); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") setMenu(false); });
+
+  /* Active section in the nav, and the back-to-top button */
+  var navLinks = Array.prototype.slice.call(nav.querySelectorAll('a[href^="#"]'));
+  var sections = navLinks.map(function (a) { return document.getElementById(a.getAttribute("href").slice(1)); });
+  var toTop = document.getElementById("to-top");
+  var ticking = false;
+  function updateScroll() {
+    ticking = false;
+    var y = window.scrollY || window.pageYOffset;
+    var line = y + (parseFloat(getComputedStyle(root).getPropertyValue("--nav-h")) || 60) + 80;
+    var current = sections[0] ? sections[0].id : null;
+    sections.forEach(function (s) {
+      if (s && s.getBoundingClientRect().top + y <= line) current = s.id;
+    });
+    if (window.innerHeight + y >= document.documentElement.scrollHeight - 4 && sections.length) {
+      current = sections[sections.length - 1].id;
+    }
+    navLinks.forEach(function (a) {
+      var on = a.getAttribute("href") === "#" + current;
+      a.classList.toggle("is-active", on);
+      if (on) a.setAttribute("aria-current", "true"); else a.removeAttribute("aria-current");
+    });
+    toTop.hidden = y < 700;
+  }
+  window.addEventListener("scroll", function () {
+    if (!ticking) { ticking = true; window.requestAnimationFrame(updateScroll); }
+  }, { passive: true });
+  updateScroll();
+  var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  toTop.addEventListener("click", function () {
+    window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+  });
+
+  /* News window: fade the edges that have more content beyond them */
+  var newsBox = document.getElementById("news-box");
+  function syncNewsFade() {
+    var top = newsBox.scrollTop;
+    newsBox.classList.toggle("is-scrolled", top > 2);
+    newsBox.classList.toggle("at-end", top + newsBox.clientHeight >= newsBox.scrollHeight - 2);
+  }
+  newsBox.addEventListener("scroll", syncNewsFade, { passive: true });
+  window.addEventListener("resize", syncNewsFade);
+  syncNewsFade();
+
+  /* Publication tabs: Highlights keeps its own order (data-hl); every other tab lists papers newest first (data-date) */
+  var filterBtns = Array.prototype.slice.call(document.querySelectorAll(".filter"));
+  var pubList = document.querySelector(".pubs");
+  var pubs = Array.prototype.slice.call(document.querySelectorAll(".pub"));
+  function tagsOf(p) { return (p.getAttribute("data-tags") || "").split(/\s+/); }
+  function applyFilter(f) {
+    filterBtns.forEach(function (b) {
+      var on = b.getAttribute("data-filter") === f;
+      b.classList.toggle("is-on", on);
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+    var shown = pubs.filter(function (p) { return tagsOf(p).indexOf(f) !== -1; });
+    shown.sort(function (a, b) {
+      if (f === "hl") return (+a.getAttribute("data-hl") || 99) - (+b.getAttribute("data-hl") || 99);
+      var d = (b.getAttribute("data-date") || "").localeCompare(a.getAttribute("data-date") || "");
+      return d || pubs.indexOf(a) - pubs.indexOf(b);
+    });
+    pubs.forEach(function (p) { p.hidden = true; });
+    shown.forEach(function (p) { p.hidden = false; pubList.appendChild(p); });
+  }
+  var TAB_ORDER = ["hl", "arch", "opt", "sys", "sciml", "first"];
+  function tabFor(p) {
+    var t = tagsOf(p);
+    for (var i = 0; i < TAB_ORDER.length; i++) if (t.indexOf(TAB_ORDER[i]) !== -1) return TAB_ORDER[i];
+    return "hl";
+  }
+  filterBtns.forEach(function (b) {
+    var f = b.getAttribute("data-filter");
+    var badge = b.querySelector("span");
+    if (badge) badge.textContent = pubs.filter(function (p) { return tagsOf(p).indexOf(f) !== -1; }).length;
+    b.addEventListener("click", function () { applyFilter(f); });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('a[href^="#pub-"]'), function (a) {
+    a.addEventListener("click", function () {
+      var target = document.getElementById(a.getAttribute("href").slice(1));
+      if (target && target.hidden) applyFilter(tabFor(target));
+    });
+  });
+  applyFilter("hl");
+
+  /* Copy email */
+  var copyBtn = document.getElementById("copy-email");
+  var tip = document.getElementById("copy-tip");
+  var tipTimer;
+  function showTip(text) {
+    tip.textContent = text;
+    tip.classList.add("show");
+    clearTimeout(tipTimer);
+    tipTimer = setTimeout(function () { tip.classList.remove("show"); }, 1600);
+  }
+  function selectEmail() {
+    var range = document.createRange();
+    range.selectNodeContents(document.getElementById("email-text"));
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+  copyBtn.addEventListener("click", function () {
+    var email = "ziyueliu@ucsb.edu";
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(email).then(function () { showTip("Copied"); }, function () { selectEmail(); showTip("Press Ctrl+C to copy"); });
+    } else {
+      selectEmail();
+      showTip("Press Ctrl+C to copy");
+    }
+  });
+})();
+</script>
+</body>
+</html>
