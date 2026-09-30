@@ -35,6 +35,12 @@
   --ok: #178246;
   --star: #dc9e22;
   --shadow: 0 1px 2px rgba(19, 28, 40, .05), 0 10px 28px -14px rgba(19, 28, 40, .22);
+  --c1: #2a78d6;
+  --c1-soft: #d9e7f8;
+  --c0: #8c96a4;
+  --crit: #d03b3b;
+  --crit-soft: #fbe9e9;
+  --axis: #c7cfd9;
 
   --font-display: "Source Serif 4", "Source Serif Pro", Georgia, "Times New Roman", serif;
   --font-body: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -63,6 +69,12 @@
     --ok: #4ade80;
     --star: #ecbd4f;
     --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 12px 30px -14px rgba(0, 0, 0, .7);
+    --c1: #3987e5;
+    --c1-soft: #1b3150;
+    --c0: #6f7b8c;
+    --crit: #e05a5a;
+    --crit-soft: #3a1d20;
+    --axis: #334052;
     color-scheme: dark;
   }
 }
@@ -85,6 +97,12 @@
   --ok: #4ade80;
   --star: #ecbd4f;
   --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 12px 30px -14px rgba(0, 0, 0, .7);
+  --c1: #3987e5;
+  --c1-soft: #1b3150;
+  --c0: #6f7b8c;
+  --crit: #e05a5a;
+  --crit-soft: #3a1d20;
+  --axis: #334052;
   color-scheme: dark;
 }
 
@@ -483,6 +501,95 @@ h2 {
 .chip span { font-family: var(--font-mono); font-size: 11.5px; font-weight: 400; color: var(--muted); }
 .chip:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
 
+.chip .oral {
+  padding: 0 6px;
+  border: 1px solid var(--gold-line);
+  border-radius: 5px;
+  background: var(--gold-soft);
+  font-size: 11px; font-weight: 500; line-height: 17px;
+  color: var(--gold);
+}
+
+/* Research figures: one per layer, between the text and the chips. Each is a small version of a
+   figure on the project page; the layout tightens when the figure is narrower than 440px. */
+.rfig { margin: 2px 0 14px; max-width: 560px; container-type: inline-size; }
+.rf-panel, .rf-frame { min-width: 0; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--bg); }
+.rf-panel.ours { border-color: var(--accent-line); background: linear-gradient(var(--accent-soft), var(--bg) 80%); }
+.rf-name { font-size: 13px; font-weight: 600; line-height: 1.35; color: var(--ink); }
+.rf-name .sub { margin-left: 6px; font-weight: 400; color: var(--muted); }
+.rf-name .nw { white-space: nowrap; }
+/* CoLA: a full-size layer next to the auto-encoder that replaces it */
+.rf-ae { display: grid; grid-template-columns: minmax(0, 1fr) 16px minmax(0, 1fr); align-items: center; gap: 6px; }
+.rf-to { text-align: center; font-size: 17px; color: var(--muted); }
+.rf-ae svg { display: block; width: 100%; height: auto; margin-top: 4px; }
+.rf-ae .w { fill: var(--c1-soft); stroke: var(--c1); stroke-width: 1.4; }
+.rf-ae .act-full { fill: var(--gold-soft); stroke: var(--gold-line); stroke-width: 1.4; }
+.rf-ae .act-low { fill: var(--c1); }
+.rf-ae .io { fill: var(--surface-2); stroke: var(--axis); stroke-width: 1; }
+.rf-ae .ar { fill: none; stroke: var(--muted); stroke-width: 1.4; }
+.rf-ae .arh { fill: var(--muted); }
+.rf-ae text { font-family: var(--font-display); font-style: italic; font-size: 18px; fill: var(--ink); }
+.rf-ae text.on { font-size: 14px; fill: #ffffff; }
+.rf-ae text.dim { font-size: 12px; fill: var(--muted); }
+.rf-eq { margin-top: 2px; text-align: center; white-space: nowrap; font-family: var(--font-display); font-style: italic; font-size: 15px; color: var(--ink); }
+/* Muon²: GPU-hours, bars drawn to scale in the space left of the value labels */
+.rf-hb { --room: 76px; display: grid; grid-template-columns: max-content minmax(0, 1fr); align-items: center; gap: 7px 12px; margin-top: 10px; }
+.rf-hb-lab { text-align: right; white-space: nowrap; font-size: 13px; color: var(--text); }
+.rf-hb-lab.hl { font-weight: 600; color: var(--ink); }
+.rf-hb-bar { display: flex; align-items: center; gap: 8px; height: 18px; }
+.rf-hb-bar i { flex: none; height: 100%; width: calc((100% - var(--room)) * var(--v) / 1200); border-radius: 0 4px 4px 0; background: var(--c0); }
+.rf-hb-bar.hl i { background: var(--c1); }
+.rf-hb-bar b { white-space: nowrap; font-size: 13px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+.rf-hb-bar small { margin-left: 5px; font-size: 11.5px; font-weight: 400; color: var(--muted); }
+.rf-hb-axis { position: relative; height: 16px; margin-top: -3px; margin-right: var(--room); border-top: 1px solid var(--axis); }
+.rf-hb-axis span { position: absolute; top: 2px; transform: translateX(-50%); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rf-hb-axis span:first-child { transform: none; }
+/* ReCoVer: one failure in the middle of an iteration, handled by checkpoint-restart and by ReCoVer */
+.rf-tl { display: grid; gap: 8px; }
+.rf-grid { display: grid; gap: 5px 4px; margin-top: 9px; }
+.rf-grid.restart { grid-template-columns: 38px 1fr 1fr .9fr 2.5fr 1fr 1fr .9fr .75fr; }
+.rf-grid.recover { grid-template-columns: 38px 1fr 1fr 1.7fr 1fr .9fr .75fr 2.1fr; }
+.rf-lane { grid-column: 1; align-self: center; white-space: nowrap; font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+.rf-b {
+  display: grid; place-items: center; min-height: 26px; padding: 2px;
+  border-radius: 6px; background: var(--c1-soft);
+  text-align: center; font-size: 11px; font-weight: 500; line-height: 1.15; color: var(--accent-ink);
+}
+.rf-b.x { background: var(--c1); color: #ffffff; }
+.rf-b.redo { background: repeating-linear-gradient(135deg, var(--surface-2) 0 5px, var(--bg) 5px 9px); box-shadow: inset 0 0 0 1px var(--line); color: var(--muted); }
+.rf-b.fail { background: var(--crit-soft); color: var(--crit); font-weight: 600; }
+.rf-b.sync { background: var(--bg); box-shadow: inset 0 0 0 1px var(--axis); color: var(--text); }
+.rf-b.sync.bad { box-shadow: inset 0 0 0 1px var(--crit); color: var(--crit); }
+.rf-b.stop { background: var(--surface-2); color: var(--muted); }
+.rf-b.fix { background: var(--bg); box-shadow: inset 0 0 0 1px var(--accent-line); color: var(--accent-ink); }
+.rf-b.gone { background: transparent; box-shadow: inset 0 0 0 1px var(--line); font-weight: 400; color: var(--faint); }
+.rf-b.upd { background: var(--ink); color: var(--bg); }
+.rf-b.saved { background: transparent; font-weight: 600; color: var(--accent); }
+/* DeepOHeat: a crop of the paper's temperature-field figure, on a white plate as on the project page */
+.rf-plate { padding: 8px 10px; border-radius: 12px; background: #ffffff; box-shadow: inset 0 0 0 1px var(--line); }
+.rf-plate img { display: block; width: 100%; height: auto; }
+.rf-plate .narrow { display: none; }
+@container (max-width: 439px) {
+  .rf-panel, .rf-frame { padding: 8px 9px; }
+  .rf-name { font-size: 12.5px; }
+  .rf-name .sub { display: block; margin-left: 0; }
+  .rf-ae text { font-size: 25px; }
+  .rf-ae text.on { font-size: 17px; }
+  .rf-ae text.dim { display: none; }
+  .rf-eq { font-size: 13.5px; }
+  .rf-hb { --room: 72px; gap: 7px 10px; }
+  .rf-hb-lab { font-size: 12.5px; }
+  .rf-hb-axis .odd { display: none; }
+  .rf-grid { gap: 4px 3px; }
+  .rf-grid.restart { grid-template-columns: 30px .85fr .85fr 1fr 2.3fr .85fr .85fr 1fr 1fr; }
+  .rf-grid.recover { grid-template-columns: 30px .85fr .85fr 1.7fr 1fr 1fr 1fr 1.9fr; }
+  .rf-lane { font-size: 10px; }
+  .rf-b { padding: 1px; font-size: 10px; }
+  .rf-plate { max-width: 380px; padding: 6px 8px; }
+  .rf-plate .wide { display: none; }
+  .rf-plate .narrow { display: block; }
+}
+
 /* Publications */
 .pub-tools {
   display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
@@ -878,8 +985,15 @@ h2 {
           <p class="layer-label"><svg class="glyph" viewBox="0 0 24 20" aria-hidden="true"><rect x="2" y="1" width="20" height="4.6" rx="1.5"/><rect x="2" y="7.7" width="20" height="4.6" rx="1.5"/><rect x="2" y="14.4" width="20" height="4.6" rx="1.5"/></svg>Architecture</p>
           <div class="layer-body">
             <p>Low-rank and tensor-compressed models that cut the compute and memory cost of pre-training while preserving quality.</p>
+            <figure class="rfig" aria-label="A full-size layer next to the CoLA layer that replaces it">
+              <div class="rf-ae">
+                <div class="rf-panel"><div class="rf-name">Full-size layer</div><svg viewBox="0 0 250 132" role="img" aria-label="Full-size layer: input of size d, weight W, activation of size d_ff"><rect class="io" x="29" y="46" width="10" height="40" rx="2"/><text class="dim" x="34" y="104" text-anchor="middle">d</text><path class="ar" d="M43 66 H57"/><path class="arh" d="M57 62 L64 66 L57 70 Z"/><path class="w" d="M68 46 L158 11 L158 121 L68 86 Z"/><text x="113" y="72" text-anchor="middle">W</text><path class="ar" d="M162 66 H176"/><path class="arh" d="M176 62 L183 66 L176 70 Z"/><rect class="act-full" x="187" y="11" width="20" height="110" rx="3"/><text x="197" y="72" text-anchor="middle">&#963;</text><text class="dim" x="212" y="70">d<tspan dy="3" font-size="9">ff</tspan></text></svg><div class="rf-eq">h = &#963;(Wx)</div></div>
+                <div class="rf-to" aria-hidden="true">&#8594;</div>
+                <div class="rf-panel ours"><div class="rf-name">CoLA layer</div><svg viewBox="0 0 250 132" role="img" aria-label="CoLA layer: input of size d, low-rank factor A, activation of rank r, low-rank factor B back to size d_ff"><rect class="io" x="8" y="46" width="10" height="40" rx="2"/><text class="dim" x="13" y="104" text-anchor="middle">d</text><path class="ar" d="M22 66 H34"/><path class="arh" d="M34 62 L41 66 L34 70 Z"/><path class="w" d="M45 46 L95 55 L95 77 L45 86 Z"/><text x="70" y="72" text-anchor="middle">A</text><path class="ar" d="M99 66 H110"/><path class="arh" d="M110 62 L117 66 L110 70 Z"/><rect class="act-low" x="121" y="55" width="22" height="22" rx="4"/><text class="on" x="132" y="71" text-anchor="middle">&#963;</text><text class="dim" x="132" y="93" text-anchor="middle">r</text><path class="ar" d="M147 66 H157"/><path class="arh" d="M157 62 L164 66 L157 70 Z"/><path class="w" d="M168 55 L227 11 L227 121 L168 77 Z"/><text x="203" y="72" text-anchor="middle">B</text><text class="dim" x="231" y="70">d<tspan dy="3" font-size="9">ff</tspan></text></svg><div class="rf-eq">h = B&#8201;&#963;(Ax)</div></div>
+              </div>
+            </figure>
             <div class="chips">
-              <a class="chip" href="#pub-cola">CoLA <span>EMNLP'25</span></a>
+              <a class="chip" href="#pub-cola">CoLA <span>EMNLP'25</span><span class="oral">Oral</span></a>
               <a class="chip" href="#pub-lax">LaX <span>NeurIPS'25</span></a>
               <a class="chip" href="#pub-comera">CoMERA <span>NeurIPS'24</span></a>
             </div>
@@ -889,8 +1003,19 @@ h2 {
           <p class="layer-label"><svg class="glyph" viewBox="0 0 24 20" aria-hidden="true"><rect x="2" y="1" width="20" height="4.6" rx="1.5"/><rect x="2" y="7.7" width="20" height="4.6" rx="1.5"/><rect x="2" y="14.4" width="20" height="4.6" rx="1.5"/></svg>Optimizer</p>
           <div class="layer-body">
             <p>Muon-based optimizers that further speed up convergence, reduce orthogonalization cost, and improve quality.</p>
+            <figure class="rfig" aria-label="GPU-hours to reach a loss of 2.36 on LLaMA-1B: 1,041 for Muon with 5 Newton-Schulz steps, 816 for Muon squared with 3 steps and 797 for Muon squared with 5 steps">
+              <div class="rf-frame">
+                <div class="rf-name">GPU-hours to reach a loss of 2.36 on <span class="nw">LLaMA-1B</span></div>
+                <div class="rf-hb">
+                  <span class="rf-hb-lab">Muon, 5 steps</span><span class="rf-hb-bar"><i style="--v:1041"></i><b>1,041</b></span>
+                  <span class="rf-hb-lab hl">Muon&sup2;, 3 steps</span><span class="rf-hb-bar hl"><i style="--v:816"></i><b>816<small>&minus;22%</small></b></span>
+                  <span class="rf-hb-lab hl">Muon&sup2;, 5 steps</span><span class="rf-hb-bar hl"><i style="--v:797"></i><b>797<small>&minus;23%</small></b></span>
+                  <span></span><span class="rf-hb-axis"><span style="left:0%">0</span><span class="odd" style="left:25%">300</span><span style="left:50%">600</span><span class="odd" style="left:75%">900</span><span style="left:100%">1,200</span></span>
+                </div>
+              </div>
+            </figure>
             <div class="chips">
-              <a class="chip" href="#pub-muon2">Muon² <span>EMNLP'26</span></a>
+              <a class="chip" href="#pub-muon2">Muon² <span>EMNLP'26</span><span class="oral">Oral</span></a>
               <a class="chip" href="#pub-muonq">MuonQ <span>COLM'26</span></a>
               <a class="chip" href="#pub-muonplus">Muon+ <span>Under review</span></a>
               <a class="chip" href="#pub-teon">TEON <span>Under review</span></a>
@@ -901,6 +1026,18 @@ h2 {
           <p class="layer-label"><svg class="glyph" viewBox="0 0 24 20" aria-hidden="true"><rect x="2" y="1" width="20" height="4.6" rx="1.5"/><rect x="2" y="7.7" width="20" height="4.6" rx="1.5"/><rect x="2" y="14.4" width="20" height="4.6" rx="1.5"/></svg>System</p>
           <div class="layer-body">
             <p>Scalable training for low-rank models, and fault-tolerant pre-training that avoids system stalling on frequent restarts at O(100k+) scale.</p>
+            <figure class="rfig" role="img" aria-label="GPU 2 fails in the middle of an iteration with three data-parallel replicas and two microbatches each. With checkpoint and restart, every replica stops, the job reloads the last checkpoint and computes all six microbatches again. With ReCoVer, the failed GPU is dropped from the group, and the two survivors repair the group and each run one extra microbatch, so the iteration still commits six microbatches, with no restart and no rework.">
+              <div class="rf-tl">
+                <div class="rf-panel">
+                  <div class="rf-name">Checkpoint and restart<span class="sub">abort, reload, redo</span></div>
+                  <div class="rf-grid restart"><div class="rf-lane" style="grid-row:1">GPU 1</div><div class="rf-lane" style="grid-row:2">GPU 2</div><div class="rf-lane" style="grid-row:3">GPU 3</div><div class="rf-b" style="grid-row:1;grid-column:2">1</div><div class="rf-b" style="grid-row:1;grid-column:3">2</div><div class="rf-b" style="grid-row:2;grid-column:2">3</div><div class="rf-b fail" style="grid-row:2;grid-column:3" title="GPU 2 fails">4 &#x2715;</div><div class="rf-b" style="grid-row:3;grid-column:2">5</div><div class="rf-b" style="grid-row:3;grid-column:3">6</div><div class="rf-b sync bad" style="grid-row:1/span 3;grid-column:4">sync &#x2715;</div><div class="rf-b stop" style="grid-row:1/span 3;grid-column:5">exit, restart,<br>load checkpoint</div><div class="rf-b redo" style="grid-row:1;grid-column:6" title="done again">1</div><div class="rf-b redo" style="grid-row:1;grid-column:7" title="done again">2</div><div class="rf-b redo" style="grid-row:2;grid-column:6" title="done again">3</div><div class="rf-b redo" style="grid-row:2;grid-column:7" title="done again">4</div><div class="rf-b redo" style="grid-row:3;grid-column:6" title="done again">5</div><div class="rf-b redo" style="grid-row:3;grid-column:7" title="done again">6</div><div class="rf-b sync" style="grid-row:1/span 3;grid-column:8">sync</div><div class="rf-b upd" style="grid-row:1/span 3;grid-column:9">step</div></div>
+                </div>
+                <div class="rf-panel ours">
+                  <div class="rf-name">ReCoVer<span class="sub">repair, restore, adjust, continue</span></div>
+                  <div class="rf-grid recover"><div class="rf-lane" style="grid-row:1">GPU 1</div><div class="rf-lane" style="grid-row:2">GPU 2</div><div class="rf-lane" style="grid-row:3">GPU 3</div><div class="rf-b" style="grid-row:1;grid-column:2">1</div><div class="rf-b" style="grid-row:1;grid-column:3">2</div><div class="rf-b" style="grid-row:2;grid-column:2">3</div><div class="rf-b fail" style="grid-row:2;grid-column:3" title="GPU 2 fails">4 &#x2715;</div><div class="rf-b" style="grid-row:3;grid-column:2">5</div><div class="rf-b" style="grid-row:3;grid-column:3">6</div><div class="rf-b fix" style="grid-row:1;grid-column:4">repair,<br>restore</div><div class="rf-b fix" style="grid-row:3;grid-column:4">repair,<br>restore</div><div class="rf-b gone" style="grid-row:2;grid-column:4/span 4">dropped from the group</div><div class="rf-b x" style="grid-row:1;grid-column:5" title="extra microbatch">7</div><div class="rf-b x" style="grid-row:3;grid-column:5" title="extra microbatch">8</div><div class="rf-b sync" style="grid-row:1;grid-column:6">sync</div><div class="rf-b sync" style="grid-row:3;grid-column:6">sync</div><div class="rf-b upd" style="grid-row:1;grid-column:7">step</div><div class="rf-b upd" style="grid-row:3;grid-column:7">step</div><div class="rf-b saved" style="grid-row:1/span 3;grid-column:8">no restart,<br>no rework</div></div>
+                </div>
+              </div>
+            </figure>
             <div class="chips">
               <a class="chip" href="#pub-recover">ReCoVer <span>NeurIPS'26</span></a>
               <a class="chip" href="#pub-boost">BOOST <span>MLSys'26</span></a>
@@ -914,12 +1051,18 @@ h2 {
           <p class="layer-label"><svg class="glyph wave" viewBox="0 0 24 20" aria-hidden="true"><path d="M2 10c2.2-5.5 4.4-5.5 6.6 0s4.4 5.5 6.6 0 4.4-5.5 6.6 0"/></svg>PDE solvers</p>
           <div class="layer-body">
             <p>Physics-informed neural networks and neural operators for fast PDE solving, applied to 3D-IC thermal simulation and design.</p>
+            <figure class="rfig" aria-label="DeepOHeat temperature fields next to the Celsius 3D solver">
+              <div class="rf-plate">
+                <img class="wide" src="research/deepoheat-wide.webp" width="1240" height="483" loading="lazy" alt="Six unseen power maps; for each, the 3D temperature field from the Celsius 3D solver and from DeepOHeat look the same.">
+                <img class="narrow" src="research/deepoheat-narrow.webp" width="760" height="517" loading="lazy" alt="Three unseen power maps; for each, the 3D temperature field from the Celsius 3D solver and from DeepOHeat look the same.">
+              </div>
+            </figure>
             <div class="chips">
-              <a class="chip" href="#pub-ttpinn">TT-PINN <span>ICML'22 Workshop</span></a>
               <a class="chip" href="#pub-deepoheat">DeepOHeat <span>DAC'23</span></a>
-              <a class="chip" href="#pub-seponet">SepONet <span>TMLR'24</span></a>
               <a class="chip" href="#pub-deepoheat-v1">DeepOHeat-v1 <span>TCPMT'26</span></a>
               <a class="chip" href="#pub-deepoheat-v2">DeepOHeat-v2 <span>Under review</span></a>
+              <a class="chip" href="#pub-seponet">SepONet <span>TMLR'24</span></a>
+              <a class="chip" href="#pub-ttpinn">TT-PINN <span>ICML'22 Workshop</span></a>
             </div>
           </div>
         </div>
