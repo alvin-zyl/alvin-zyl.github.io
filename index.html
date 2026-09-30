@@ -427,6 +427,7 @@ h2 {
 .news-box::-webkit-scrollbar { width: 6px; }
 .news-box::-webkit-scrollbar-thumb { background: var(--line); border-radius: 6px; }
 .news .ref { font-weight: 600; color: var(--ink); }
+.news .star { display: inline-block; width: 13px; height: 13px; vertical-align: -1px; margin-right: 4px; }
 .news .ref:hover { color: var(--accent); }
 .news .hl { color: var(--gold); font-weight: 600; }
 
@@ -599,6 +600,35 @@ h2 {
 .tl-sub li { display: grid; grid-template-columns: 38px minmax(0, 1fr); gap: 8px; font-size: 14.5px; line-height: 1.55; }
 .tl-sub span { font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); padding-top: 1px; font-variant-numeric: tabular-nums; }
 
+/* Teaching */
+.teach { list-style: none; margin: 0; padding: 0; }
+.teach li {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr) auto;
+  gap: 4px 20px;
+  align-items: baseline;
+  padding-block: 12px;
+  border-top: 1px solid var(--line);
+}
+.teach li:first-child { border-top: 0; padding-top: 4px; }
+.teach .code {
+  font-family: var(--font-mono);
+  font-size: 13px; font-weight: 500;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.teach .name { font-size: 15.5px; line-height: 1.45; font-weight: 600; color: var(--ink); }
+.teach .terms {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 600px) {
+  .teach li { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+}
+
 /* Footer */
 .footer { border-top: 1px solid var(--line); }
 .footer-inner {
@@ -647,7 +677,7 @@ h2 {
   .id-links a .i { width: 16px; height: 16px; }
   .copy { margin-left: 2px; }
 }
-@media (max-width: 820px) {
+@media (max-width: 880px) {
   .menu-btn { display: grid; }
   .nav {
     display: none;
@@ -742,6 +772,7 @@ h2 {
       <a href="#research">Research</a>
       <a href="#publications">Publications</a>
       <a href="#experience">Experience</a>
+      <a href="#teaching">Teaching</a>
     </nav>
     <div class="topbar-actions">
       <a class="btn-cv" href="cv.pdf" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-file"/></svg>CV</a>
@@ -812,14 +843,14 @@ h2 {
       <div class="section-head"><h2 id="news-h">News</h2><span class="section-note">Scroll for earlier updates</span></div>
       <div class="news-box" id="news-box" tabindex="0" role="region" aria-label="News, newest first">
       <ul class="news">
-        <li><time datetime="2026-09">2026.09</time><span class="dot" aria-hidden="true"></span><p><a class="ref" href="#pub-recover">ReCoVer</a> was accepted to NeurIPS 2026.</p></li>
-        <li><time datetime="2026-08">2026.08</time><span class="dot" aria-hidden="true"></span><p><a class="ref" href="#pub-muon2">Muon²</a> was accepted to EMNLP 2026 as an <span class="hl">oral</span> presentation.</p></li>
+        <li><time datetime="2026-09">2026.09</time><span class="dot" aria-hidden="true"></span><p><svg class="i i-fill star" role="img" aria-label="First author"><use href="#i-star"/></svg><a class="ref" href="#pub-recover">ReCoVer</a> was accepted to NeurIPS 2026.</p></li>
+        <li><time datetime="2026-08">2026.08</time><span class="dot" aria-hidden="true"></span><p><svg class="i i-fill star" role="img" aria-label="First author"><use href="#i-star"/></svg><a class="ref" href="#pub-muon2">Muon²</a> was accepted to EMNLP 2026 as an <span class="hl">oral</span> presentation.</p></li>
         <li><time datetime="2026-07">2026.07</time><span class="dot" aria-hidden="true"></span><p><a class="ref" href="#pub-muonq">MuonQ</a> was accepted to COLM 2026.</p></li>
         <li><time datetime="2026-06">2026.06</time><span class="dot" aria-hidden="true"></span><p>Started my internship at <strong>Google Cloud</strong>, on MoE adapter tuning and serving.</p></li>
-        <li><time datetime="2026-01">2026.01</time><span class="dot" aria-hidden="true"></span><p><a class="ref" href="#pub-boost">BOOST</a> was accepted to MLSys 2026.</p></li>
+        <li><time datetime="2026-01">2026.01</time><span class="dot" aria-hidden="true"></span><p><svg class="i i-fill star" role="img" aria-label="First author"><use href="#i-star"/></svg><a class="ref" href="#pub-boost">BOOST</a> was accepted to MLSys 2026.</p></li>
         <li><time datetime="2026-01">2026.01</time><span class="dot" aria-hidden="true"></span><p><a class="ref" href="#pub-deepoheat-v1">DeepOHeat-v1</a> was published in IEEE TCPMT.</p></li>
-        <li><time datetime="2025-09">2025.09</time><span class="dot" aria-hidden="true"></span><p><a class="ref" href="#pub-lax">LaX</a> was accepted to NeurIPS 2025.</p></li>
-        <li><time datetime="2025-08">2025.08</time><span class="dot" aria-hidden="true"></span><p><a class="ref" href="#pub-cola">CoLA</a> (<span class="hl">oral</span>) and <a class="ref" href="#pub-quzo">QuZO</a> were accepted to EMNLP 2025.</p></li>
+        <li><time datetime="2025-09">2025.09</time><span class="dot" aria-hidden="true"></span><p><svg class="i i-fill star" role="img" aria-label="First author"><use href="#i-star"/></svg><a class="ref" href="#pub-lax">LaX</a> was accepted to NeurIPS 2025.</p></li>
+        <li><time datetime="2025-08">2025.08</time><span class="dot" aria-hidden="true"></span><p><svg class="i i-fill star" role="img" aria-label="First author"><use href="#i-star"/></svg><a class="ref" href="#pub-cola">CoLA</a> (<span class="hl">oral</span>) and <a class="ref" href="#pub-quzo">QuZO</a> were accepted to EMNLP 2025.</p></li>
         <li><time datetime="2025-04">2025.04</time><span class="dot" aria-hidden="true"></span><p>Visiting student at <strong>Argonne National Laboratory</strong>, on fault-tolerant LLM pre-training.</p></li>
         <li><time datetime="2024-12">2024.12</time><span class="dot" aria-hidden="true"></span><p><a class="ref" href="#pub-seponet">SepONet</a> was published in TMLR.</p></li>
         <li><time datetime="2024-09">2024.09</time><span class="dot" aria-hidden="true"></span><p><a class="ref" href="#pub-comera">CoMERA</a> was accepted to NeurIPS 2024.</p></li>
@@ -827,8 +858,8 @@ h2 {
         <li><time datetime="2023-09">2023.09</time><span class="dot" aria-hidden="true"></span><p>Started my <strong>Ph.D. in Computer Science</strong> at UCSB.</p></li>
         <li><time datetime="2023-04">2023.04</time><span class="dot" aria-hidden="true"></span><p>Back at <strong>Cadence</strong> as a research intern, on automotive aerodynamic simulation.</p></li>
         <li><time datetime="2023-03">2023.03</time><span class="dot" aria-hidden="true"></span><p>Received my M.A. in Statistics from UCSB.</p></li>
-        <li><time datetime="2023-02">2023.02</time><span class="dot" aria-hidden="true"></span><p><a class="ref" href="#pub-deepoheat">DeepOHeat</a> was accepted to DAC 2023.</p></li>
-        <li><time datetime="2022-06">2022.06</time><span class="dot" aria-hidden="true"></span><p><a class="ref" href="#pub-ttpinn">TT-PINN</a> was accepted to the ICML 2022 HAET workshop.</p></li>
+        <li><time datetime="2023-02">2023.02</time><span class="dot" aria-hidden="true"></span><p><svg class="i i-fill star" role="img" aria-label="First author"><use href="#i-star"/></svg><a class="ref" href="#pub-deepoheat">DeepOHeat</a> was accepted to DAC 2023.</p></li>
+        <li><time datetime="2022-06">2022.06</time><span class="dot" aria-hidden="true"></span><p><svg class="i i-fill star" role="img" aria-label="First author"><use href="#i-star"/></svg><a class="ref" href="#pub-ttpinn">TT-PINN</a> was accepted to the ICML 2022 HAET workshop.</p></li>
         <li><time datetime="2022-06">2022.06</time><span class="dot" aria-hidden="true"></span><p>First research internship at <strong>Cadence</strong>, on 3D-IC thermal simulation.</p></li>
         <li><time datetime="2022-01">2022.01</time><span class="dot" aria-hidden="true"></span><p>Joined <a href="https://web.ece.ucsb.edu/~zhengzhang/" target="_blank" rel="noopener">Prof. Zheng Zhang</a>'s group at UCSB.</p></li>
         <li><time datetime="2021-09">2021.09</time><span class="dot" aria-hidden="true"></span><p>Came to <strong>UCSB</strong> to start my M.A. in Statistics.</p></li>
@@ -855,7 +886,7 @@ h2 {
           </div>
         </div>
         <div class="layer" data-level="2">
-          <p class="layer-label"><svg class="glyph" viewBox="0 0 24 20" aria-hidden="true"><rect x="2" y="1" width="20" height="4.6" rx="1.5"/><rect x="2" y="7.7" width="20" height="4.6" rx="1.5"/><rect x="2" y="14.4" width="20" height="4.6" rx="1.5"/></svg>Optimization</p>
+          <p class="layer-label"><svg class="glyph" viewBox="0 0 24 20" aria-hidden="true"><rect x="2" y="1" width="20" height="4.6" rx="1.5"/><rect x="2" y="7.7" width="20" height="4.6" rx="1.5"/><rect x="2" y="14.4" width="20" height="4.6" rx="1.5"/></svg>Optimizer</p>
           <div class="layer-body">
             <p>Muon-based optimizers that further speed up convergence, reduce orthogonalization cost, and improve quality.</p>
             <div class="chips">
@@ -971,6 +1002,7 @@ h2 {
             <p class="pub-authors">Zhengyang Wang<sup>*</sup>, <span class="me">Ziyue Liu<sup>*</sup></span>, Ruijie Zhang, Avinash Maurya, Bogdan Nicolae, Paul Hovland, Franck Cappello, Zheng Zhang</p>
             <p class="pub-tldr">Bottleneck-aware parallelism that makes large-scale low-rank training faster than full-rank.</p>
             <p class="pub-links">
+              <a class="plink proj" href="boost/"><svg class="i" aria-hidden="true"><use href="#i-page"/></svg>Project page</a>
               <a class="plink" href="https://proceedings.mlsys.org/paper_files/paper/2026/hash/127e7093c38a45290524237be8eb39c5-Abstract-Conference.html" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-file"/></svg>Paper</a>
               <a class="plink" href="https://github.com/Arcana-2236/BOOST" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-code"/></svg>Code</a>
             </p>
@@ -984,6 +1016,7 @@ h2 {
             <p class="pub-authors">Ruijie Zhang<sup>*</sup>, <span class="me">Ziyue Liu<sup>*</sup></span>, Zhengyang Wang, Zheng Zhang</p>
             <p class="pub-tldr">A plug-and-play module that helps low-rank models match full-rank quality.</p>
             <p class="pub-links">
+              <a class="plink proj" href="lax/"><svg class="i" aria-hidden="true"><use href="#i-page"/></svg>Project page</a>
               <a class="plink" href="https://proceedings.neurips.cc/paper_files/paper/2025/hash/d2706f9149856b6f7016ebf270dd9f25-Abstract-Conference.html" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-file"/></svg>Paper</a>
               <a class="plink" href="https://github.com/K1seki221/Latent_Crossing" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-code"/></svg>Code</a>
             </p>
@@ -997,6 +1030,7 @@ h2 {
             <p class="pub-authors">Zi Yang, <span class="me">Ziyue Liu</span>, Samridhi Choudhary, Xinfeng Xie, Cao Gao, Siegfried Kunzmann, Zheng Zhang</p>
             <p class="pub-tldr">Rank-adaptive tensor-compressed training that reduces both memory and runtime on GPUs.</p>
             <p class="pub-links">
+              <a class="plink proj" href="comera/"><svg class="i" aria-hidden="true"><use href="#i-page"/></svg>Project page</a>
               <a class="plink" href="https://proceedings.neurips.cc/paper_files/paper/2024/hash/8d35d225230a9d77b29c1dd300e48ad9-Abstract-Conference.html" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-file"/></svg>Paper</a>
               <a class="plink" href="https://github.com/ziyangjoy/CoMERA" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-code"/></svg>Code</a>
             </p>
@@ -1010,6 +1044,7 @@ h2 {
             <p class="pub-authors"><span class="me">Ziyue Liu</span>, Yixing Li, Jing Hu, Xinling Yu, Shinyu Shiau, Xin Ai, Zhiyu Zeng, Zheng Zhang</p>
             <p class="pub-tldr">Operator learning that makes 3D-IC thermal simulation orders of magnitude faster.</p>
             <p class="pub-links">
+              <a class="plink proj" href="deepoheat/"><svg class="i" aria-hidden="true"><use href="#i-page"/></svg>Project page</a>
               <a class="plink" href="https://ieeexplore.ieee.org/document/10247998" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-file"/></svg>Paper</a>
               <a class="plink" href="https://github.com/Cadence-Celsius/DeepOHeat" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-code"/></svg>Code</a>
             </p>
@@ -1172,6 +1207,20 @@ h2 {
           </ul>
         </div>
       </div>
+    </section>
+
+    <!-- ============ TEACHING ============
+         One <li> per course, most recent first. Terms go in the last <span>. -->
+    <section id="teaching" class="section" aria-labelledby="teach-h">
+      <div class="section-head"><h2 id="teach-h">Teaching</h2></div>
+      <p class="section-intro">Teaching assistant at the University of California, Santa Barbara.</p>
+      <ul class="teach">
+        <li><span class="code">CMPSC 130A</span><span class="name">Data Structures and Algorithms</span><span class="terms">Winter 2025, Winter 2026</span></li>
+        <li><span class="code">CMPSC 165B</span><span class="name">Machine Learning</span><span class="terms">Winter 2024</span></li>
+        <li><span class="code">PSTAT 231</span><span class="name">Statistical Machine Learning</span><span class="terms">Fall 2022, Winter 2023</span></li>
+        <li><span class="code">PSTAT 120B</span><span class="name">Probability and Statistics</span><span class="terms">Fall 2021, Spring 2022</span></li>
+        <li><span class="code">PSTAT 5LS</span><span class="name">Statistics for Life Sciences</span><span class="terms">Winter 2022</span></li>
+      </ul>
     </section>
 
   </main>
