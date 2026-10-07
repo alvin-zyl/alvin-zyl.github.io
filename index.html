@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Ziyue (Alvin) Liu is a Ph.D. student in Computer Science at UC Santa Barbara working on efficient and resilient pre-training of large language models.">
+<meta name="description" content="Ziyue (Alvin) Liu is a Ph.D. student in Computer Science at UC Santa Barbara working on efficient and resilient training of large language models.">
 <meta name="author" content="Ziyue (Alvin) Liu">
 <meta name="color-scheme" content="light dark">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Ziyue (Alvin) Liu">
-<meta property="og:description" content="Ziyue (Alvin) Liu is a Ph.D. student in Computer Science at UC Santa Barbara working on efficient and resilient pre-training of large language models.">
+<meta property="og:description" content="Ziyue (Alvin) Liu is a Ph.D. student in Computer Science at UC Santa Barbara working on efficient and resilient training of large language models.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231b4d90'/%3E%3Ctext x='32' y='43' text-anchor='middle' font-family='Georgia,serif' font-size='30' font-weight='700' fill='%23ffffff'%3EZL%3C/text%3E%3C/svg%3E">
 <title>Ziyue (Alvin) Liu</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -930,10 +930,10 @@ h2 {
          Edit the text inside the <p> tags. <strong>...</strong> makes text bold. -->
     <section id="about" class="section" aria-labelledby="about-h">
       <h2 id="about-h" class="sr-only">About</h2>
-      <p class="lede">I work on making LLM pre-training <em>cheaper, faster, and more reliable.</em></p>
+      <p class="lede">I work on making LLM training <em>cheaper, faster, and more reliable.</em></p>
       <div class="prose">
         <p>I am a Ph.D. student in Computer Science at the University of California, Santa Barbara, advised by <a href="https://web.ece.ucsb.edu/~zhengzhang/" target="_blank" rel="noopener">Prof. Zheng Zhang</a>. Before my Ph.D., I received an M.A. in Statistics from UCSB and a B.S. in Statistics from Nankai University.</p>
-        <p>My research covers the pre-training stack end to end: low-rank model architectures that reduce compute, Muon-style optimizers that train faster, and scalable, fault-tolerant training systems designed for clusters of 100k+ GPUs.</p>
+        <p>My research covers the training stack end to end, particularly for pre-training: low-rank model architectures that reduce compute, Muon-style optimizers that train faster, and scalable, fault-tolerant training systems designed for clusters of 100k+ GPUs.</p>
         <p>Most recently, I was a Software Engineer Intern at <strong>Google Cloud</strong>. Before that, I was a visiting student at <strong>Argonne National Laboratory</strong> and a research intern at <strong>Cadence Design Systems</strong>.</p>
       </div>
       <div class="callout" role="note">
@@ -978,13 +978,13 @@ h2 {
          Three layers. Each chip links to a paper below by its id (href="#pub-..."). -->
     <section id="research" class="section" aria-labelledby="research-h">
       <div class="section-head"><h2 id="research-h">Research</h2></div>
-      <p class="section-intro">My current research is on efficient LLM pre-training, across three layers of the training stack. Earlier in my graduate studies, I worked on scientific machine learning, building efficient neural PDE solvers with applications in 3D-IC thermal design.</p>
-      <p class="group-label">LLM pre-training stack</p>
+      <p class="section-intro">My current research is on efficient LLM training, across three layers of the stack. Earlier in my graduate studies, I worked on scientific machine learning, building efficient neural PDE solvers with applications in 3D-IC thermal design.</p>
+      <p class="group-label">LLM training stack</p>
       <div class="stack">
         <div class="layer" data-level="1">
           <p class="layer-label"><svg class="glyph" viewBox="0 0 24 20" aria-hidden="true"><rect x="2" y="1" width="20" height="4.6" rx="1.5"/><rect x="2" y="7.7" width="20" height="4.6" rx="1.5"/><rect x="2" y="14.4" width="20" height="4.6" rx="1.5"/></svg>Architecture</p>
           <div class="layer-body">
-            <p>Low-rank and tensor-compressed models that cut the compute and memory cost of pre-training while preserving quality.</p>
+            <p>Low-rank and tensor-compressed models that cut the compute and memory cost of training while preserving quality.</p>
             <figure class="rfig" aria-label="A full-size layer next to the CoLA layer that replaces it">
               <div class="rf-ae">
                 <div class="rf-panel"><div class="rf-name">Full-size layer</div><svg viewBox="0 0 250 132" role="img" aria-label="Full-size layer: input of size d, weight W, activation of size d_ff"><rect class="io" x="29" y="46" width="10" height="40" rx="2"/><text class="dim" x="34" y="104" text-anchor="middle">d</text><path class="ar" d="M43 66 H57"/><path class="arh" d="M57 62 L64 66 L57 70 Z"/><path class="w" d="M68 46 L158 11 L158 121 L68 86 Z"/><text x="113" y="72" text-anchor="middle">W</text><path class="ar" d="M162 66 H176"/><path class="arh" d="M176 62 L183 66 L176 70 Z"/><rect class="act-full" x="187" y="11" width="20" height="110" rx="3"/><text x="197" y="72" text-anchor="middle">&#963;</text><text class="dim" x="212" y="70">d<tspan dy="3" font-size="9">ff</tspan></text></svg><div class="rf-eq">h = &#963;(Wx)</div></div>
@@ -1025,7 +1025,7 @@ h2 {
         <div class="layer" data-level="3">
           <p class="layer-label"><svg class="glyph" viewBox="0 0 24 20" aria-hidden="true"><rect x="2" y="1" width="20" height="4.6" rx="1.5"/><rect x="2" y="7.7" width="20" height="4.6" rx="1.5"/><rect x="2" y="14.4" width="20" height="4.6" rx="1.5"/></svg>System</p>
           <div class="layer-body">
-            <p>Scalable training for low-rank models, and fault-tolerant pre-training that avoids system stalling on frequent restarts at O(100k+) scale.</p>
+            <p>Scalable training for low-rank models, and fault-tolerant training that avoids system stalling on frequent restarts at O(100k+) scale.</p>
             <figure class="rfig" role="img" aria-label="GPU 2 fails in the middle of an iteration with three data-parallel replicas and two microbatches each. With checkpoint and restart, every replica stops, the job reloads the last checkpoint and computes all six microbatches again. With ReCoVer, the failed GPU is dropped from the group, and the two survivors repair the group and each run one extra microbatch, so the iteration still commits six microbatches, with no restart and no rework.">
               <div class="rf-tl">
                 <div class="rf-panel">
