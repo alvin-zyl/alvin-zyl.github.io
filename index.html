@@ -500,6 +500,16 @@ h2 {
 }
 .chip span { font-family: var(--font-mono); font-size: 11.5px; font-weight: 400; color: var(--muted); }
 .chip:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+.chip .i { width: 14px; height: 14px; align-self: center; }
+/* internship chips: link to the Experience entry rather than a paper */
+.chip.intern { border-color: var(--accent-line); background: var(--accent-soft); color: var(--accent-ink); }
+.chip.intern span { color: var(--accent); }
+.chip.intern:hover { border-color: var(--accent); color: var(--accent); }
+/* second research group: chip / data center / methods */
+.stack.thermal .layer:nth-child(1) { background: var(--bg); }
+.stack.thermal .layer:nth-child(2) { background: var(--surface); }
+.stack.thermal .layer:nth-child(3) { background: var(--surface-2); }
+.glyph.icon rect, .glyph.icon path { fill: none; stroke: var(--accent); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 
 .chip .oral {
   padding: 0 6px;
@@ -669,8 +679,7 @@ h2 {
 .plink .t { margin-left: 3px; font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; }
 .plink:hover .t { color: inherit; }
 
-/* Experience */
-.xp-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px; }
+/* Experience: full-width timeline, Education as a row below */
 .col-title {
   margin-bottom: 16px;
   font-family: var(--font-mono);
@@ -706,6 +715,13 @@ h2 {
 .tl-sub { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
 .tl-sub li { display: grid; grid-template-columns: 38px minmax(0, 1fr); gap: 8px; font-size: 14.5px; line-height: 1.55; }
 .tl-sub span { font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); padding-top: 1px; font-variant-numeric: tabular-nums; }
+.tl-sub li > div { min-width: 0; max-width: 68ch; }
+.tl-sub-title { font-weight: 600; color: var(--ink); }
+.tl-sub .chips { margin-top: 8px; }
+.tl-sub li:target { animation: target-flash 2.6s ease-out; border-radius: 4px; }
+.edu-title { margin-top: 36px; }
+.edu { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px 28px; }
+.edu li { min-width: 0; }
 
 /* Teaching */
 .teach { list-style: none; margin: 0; padding: 0; }
@@ -815,7 +831,8 @@ h2 {
   .layer { grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 18px 16px; }
   .pub { grid-template-columns: minmax(0, 1fr); gap: 8px; }
   .pub-venue { flex-direction: row; flex-wrap: wrap; }
-  .xp-grid { grid-template-columns: minmax(0, 1fr); gap: 32px; }
+  .edu { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .edu-title { margin-top: 30px; }
   .footer-inner { flex-direction: column; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -865,6 +882,7 @@ h2 {
   <symbol id="i-ext" viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8"/></symbol>
   <symbol id="i-page" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="15" rx="2.5"/><path d="M3 9h18"/><path d="M6.4 6.8h.01M9 6.8h.01"/><path d="M7.5 13h9M7.5 16h5.5"/></symbol>
   <symbol id="i-play" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10.5 9.4 4.2 2.6-4.2 2.6z"/></symbol>
+  <symbol id="i-brief" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8.5 7V5.5a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2V7M3 12.5h18"/></symbol>
   <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 2.8l2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.2l-5.6 3 1.1-6.3-4.6-4.4 6.3-.9z"/></symbol>
 </svg>
 
@@ -933,8 +951,9 @@ h2 {
       <p class="lede">I work on making LLM training <em>cheaper, faster, and more reliable.</em></p>
       <div class="prose">
         <p>I am a Ph.D. student in Computer Science at the University of California, Santa Barbara, advised by <a href="https://web.ece.ucsb.edu/~zhengzhang/" target="_blank" rel="noopener">Prof. Zheng Zhang</a>. Before my Ph.D., I received an M.A. in Statistics from UCSB and a B.S. in Statistics from Nankai University.</p>
-        <p>My research covers the training stack end to end, particularly for pre-training: low-rank model architectures that reduce compute, Muon-style optimizers that train faster, and scalable, fault-tolerant training systems designed for clusters of 100k+ GPUs.</p>
-        <p>Most recently, I was a Software Engineer Intern at <strong>Google Cloud</strong>. Before that, I was a visiting student at <strong>Argonne National Laboratory</strong> and a research intern at <strong>Cadence Design Systems</strong>.</p>
+        <p>My research covers the <strong>training stack end to end</strong>, particularly for pre-training: low-rank model architectures that reduce compute, Muon-style optimizers that train faster, and scalable, fault-tolerant training systems designed for clusters of 100k+ GPUs.</p>
+        <p>I also work on <strong>AI for EDA and data center thermal management</strong>, building ML surrogate models that speed up thermal and CFD simulation, from 3D-IC chips to whole data centers.</p>
+        <p>Most recently, I was a Software Engineer Intern at <strong>Google Cloud AI</strong>. Before that, I was a visiting student at <strong>Argonne National Laboratory</strong> and a research intern at <strong>Cadence Design Systems</strong>.</p>
       </div>
       <div class="callout" role="note">
         <span class="pulse" aria-hidden="true"></span>
@@ -953,7 +972,7 @@ h2 {
         <li><time datetime="2026-09">2026.09</time><span class="dot" aria-hidden="true"></span><p><svg class="i i-fill star" role="img" aria-label="First author"><use href="#i-star"/></svg><a class="ref" href="#pub-recover">ReCoVer</a> was accepted to NeurIPS 2026.</p></li>
         <li><time datetime="2026-08">2026.08</time><span class="dot" aria-hidden="true"></span><p><svg class="i i-fill star" role="img" aria-label="First author"><use href="#i-star"/></svg><a class="ref" href="#pub-muon2">Muon²</a> was accepted to EMNLP 2026 as an <span class="hl">oral</span> presentation.</p></li>
         <li><time datetime="2026-07">2026.07</time><span class="dot" aria-hidden="true"></span><p><a class="ref" href="#pub-muonq">MuonQ</a> was accepted to COLM 2026.</p></li>
-        <li><time datetime="2026-06">2026.06</time><span class="dot" aria-hidden="true"></span><p>Started my internship at <strong>Google Cloud</strong>, on MoE adapter tuning and serving.</p></li>
+        <li><time datetime="2026-06">2026.06</time><span class="dot" aria-hidden="true"></span><p>Started my internship at <strong>Google Cloud AI</strong>, on MoE adapter tuning and serving.</p></li>
         <li><time datetime="2026-01">2026.01</time><span class="dot" aria-hidden="true"></span><p><svg class="i i-fill star" role="img" aria-label="First author"><use href="#i-star"/></svg><a class="ref" href="#pub-boost">BOOST</a> was accepted to MLSys 2026.</p></li>
         <li><time datetime="2026-01">2026.01</time><span class="dot" aria-hidden="true"></span><p><a class="ref" href="#pub-deepoheat-v1">DeepOHeat-v1</a> was published in IEEE TCPMT.</p></li>
         <li><time datetime="2025-09">2025.09</time><span class="dot" aria-hidden="true"></span><p><svg class="i i-fill star" role="img" aria-label="First author"><use href="#i-star"/></svg><a class="ref" href="#pub-lax">LaX</a> was accepted to NeurIPS 2025.</p></li>
@@ -975,10 +994,11 @@ h2 {
     </section>
 
     <!-- ============ RESEARCH ============
-         Three layers. Each chip links to a paper below by its id (href="#pub-..."). -->
+         Two groups of three layers. Paper chips link to a paper below (href="#pub-...");
+         internship chips (class "chip intern") link to the Experience entry (href="#xp-..."). -->
     <section id="research" class="section" aria-labelledby="research-h">
       <div class="section-head"><h2 id="research-h">Research</h2></div>
-      <p class="section-intro">My current research is on efficient LLM training, across three layers of the stack. Earlier in my graduate studies, I worked on scientific machine learning, building efficient neural PDE solvers with applications in 3D-IC thermal design.</p>
+      <p class="section-intro">My main research is on efficient LLM training, across three layers of the stack. My second line of work is AI for EDA and data center thermal management, built up through papers and three research internships at Cadence.</p>
       <p class="group-label">LLM training stack</p>
       <div class="stack">
         <div class="layer" data-level="1">
@@ -1045,12 +1065,12 @@ h2 {
           </div>
         </div>
       </div>
-      <p class="group-label">Scientific machine learning</p>
-      <div class="stack">
-        <div class="layer" data-level="sci">
-          <p class="layer-label"><svg class="glyph wave" viewBox="0 0 24 20" aria-hidden="true"><path d="M2 10c2.2-5.5 4.4-5.5 6.6 0s4.4 5.5 6.6 0 4.4-5.5 6.6 0"/></svg>PDE solvers</p>
+      <p class="group-label" id="research-eda">AI for EDA / Data center</p>
+      <div class="stack thermal">
+        <div class="layer">
+          <p class="layer-label"><svg class="glyph icon" viewBox="0 0 24 20" aria-hidden="true"><rect x="6.5" y="4.5" width="11" height="11" rx="2"/><rect x="9.6" y="7.6" width="4.8" height="4.8" rx="1"/><path d="M9.5 1.6v2.9M14.5 1.6v2.9M9.5 15.5v2.9M14.5 15.5v2.9M3.1 7.5h3.4M3.1 12.5h3.4M17.5 7.5h3.4M17.5 12.5h3.4"/></svg>Chip</p>
           <div class="layer-body">
-            <p>Physics-informed neural networks and neural operators for fast PDE solving, applied to 3D-IC thermal simulation and design.</p>
+            <p>Physics-driven operator learning for 3D-IC thermal design that speeds up thermal simulation by orders of magnitude, handles multi-scale and multi-die designs, and enables fast, trustworthy thermal optimization.</p>
             <figure class="rfig" aria-label="DeepOHeat temperature fields next to the Celsius 3D solver">
               <div class="rf-plate">
                 <img class="wide" src="research/deepoheat-wide.webp" width="1240" height="483" loading="lazy" alt="Six unseen power maps; for each, the 3D temperature field from the Celsius 3D solver and from DeepOHeat look the same.">
@@ -1061,8 +1081,27 @@ h2 {
               <a class="chip" href="#pub-deepoheat">DeepOHeat <span>DAC'23</span></a>
               <a class="chip" href="#pub-deepoheat-v1">DeepOHeat-v1 <span>TCPMT'26</span></a>
               <a class="chip" href="#pub-deepoheat-v2">DeepOHeat-v2 <span>Under review</span></a>
+              <a class="chip intern" href="#xp-cadence-2022"><svg class="i" aria-hidden="true"><use href="#i-brief"/></svg>Cadence internship <span>2022</span></a>
+            </div>
+          </div>
+        </div>
+        <div class="layer">
+          <p class="layer-label"><svg class="glyph icon" viewBox="0 0 24 20" aria-hidden="true"><rect x="5.5" y="1.5" width="13" height="17" rx="1.8"/><path d="M5.5 7.2h13M5.5 12.8h13M8.5 4.35h4M8.5 10h4M8.5 15.65h4M15.4 4.35h.01M15.4 10h.01M15.4 15.65h.01"/></svg>Data center</p>
+          <div class="layer-body">
+            <p>AI surrogates for data center digital twins, trained on data from physics-based solvers and integrated with <a href="https://www.cadence.com/en_US/home/tools/reality-digital-twin.html" target="_blank" rel="noopener">Cadence's Reality Digital Twin Platform</a> to predict airflow and server temperatures in near real time.</p>
+            <div class="chips">
+              <a class="chip intern" href="#xp-cadence-2024"><svg class="i" aria-hidden="true"><use href="#i-brief"/></svg>Cadence internship <span>2024</span></a>
+            </div>
+          </div>
+        </div>
+        <div class="layer">
+          <p class="layer-label"><svg class="glyph wave" viewBox="0 0 24 20" aria-hidden="true"><path d="M2 10c2.2-5.5 4.4-5.5 6.6 0s4.4 5.5 6.6 0 4.4-5.5 6.6 0"/></svg>Methods</p>
+          <div class="layer-body">
+            <p>Faster and lighter physics-informed networks and neural operators, and CFD surrogates that scale to large automotive aerodynamic simulations.</p>
+            <div class="chips">
               <a class="chip" href="#pub-seponet">SepONet <span>TMLR'24</span></a>
               <a class="chip" href="#pub-ttpinn">TT-PINN <span>ICML'22 Workshop</span></a>
+              <a class="chip intern" href="#xp-cadence-2023"><svg class="i" aria-hidden="true"><use href="#i-brief"/></svg>Cadence internship <span>2023</span></a>
             </div>
           </div>
         </div>
@@ -1081,7 +1120,8 @@ h2 {
           <button class="filter" type="button" data-filter="arch" aria-pressed="false">Architecture <span>3</span></button>
           <button class="filter" type="button" data-filter="opt" aria-pressed="false">Optimization <span>5</span></button>
           <button class="filter" type="button" data-filter="sys" aria-pressed="false">System <span>2</span></button>
-          <button class="filter" type="button" data-filter="sciml" aria-pressed="false">Scientific ML <span>4</span></button>
+          <button class="filter" type="button" data-filter="eda" aria-pressed="false">AI for EDA <span>3</span></button>
+          <button class="filter" type="button" data-filter="sciml" aria-pressed="false">Scientific ML <span>2</span></button>
         </div>
         <p class="legend"><span><svg class="i i-fill star" aria-hidden="true"><use href="#i-star"/></svg>First or co-first author</span><span>* Equal contribution</span></p>
       </div>
@@ -1089,10 +1129,11 @@ h2 {
       <!-- ============ PUBLICATIONS ============
            One <li class="pub"> block per paper.
            Tabs: "Highlights" is shown by default and follows data-hl="1", "2", ... ;
-           every other tab lists its papers newest first by data-date="YYYY-MM".
+           every other tab lists first-author papers first, then the rest; inside each group, published papers
+           newest first by data-date="YYYY-MM", and papers under review (class="tag review") last.
            To add a paper: copy a whole block (from <li class="pub" to its </li>), give it a new unique id,
            set data-date, and set data-tags to any of: hl (Highlights, also add data-hl), first (first or co-first author),
-           arch, opt, sys, sciml (research area). Tab counts update automatically.
+           arch, opt, sys, eda, sciml (research area). Tab counts update automatically.
            Venue tag styles: class="tag" (normal), class="tag oral" (gold), class="tag review" (dashed), class="tag ws" (workshop).
            The star before the title marks first-author papers; delete that <svg ...>...</svg> if not first author.
            Your name: <span class="me">Ziyue Liu</span>. Equal contribution: <sup>*</sup>. -->
@@ -1180,7 +1221,7 @@ h2 {
           </div>
         </li>
 
-        <li class="pub" id="pub-deepoheat" data-tags="hl first sciml" data-date="2023-02" data-hl="7">
+        <li class="pub" id="pub-deepoheat" data-tags="hl first eda" data-date="2023-02" data-hl="7">
           <div class="pub-venue"><span class="tag">DAC 2023</span></div>
           <div class="pub-main">
             <h3 class="pub-title"><svg class="i i-fill star" role="img" aria-label="First author"><use href="#i-star"/></svg><a href="https://ieeexplore.ieee.org/document/10247998" target="_blank" rel="noopener">DeepOHeat: Operator Learning-based Ultra-fast Thermal Simulation in 3D-IC Design</a></h3>
@@ -1220,7 +1261,7 @@ h2 {
           </div>
         </li>
 
-        <li class="pub" id="pub-deepoheat-v1" data-tags="sciml" data-date="2026-01" hidden>
+        <li class="pub" id="pub-deepoheat-v1" data-tags="eda" data-date="2026-01" hidden>
           <div class="pub-venue"><span class="tag">TCPMT 2026</span></div>
           <div class="pub-main">
             <h3 class="pub-title"><a href="https://ieeexplore.ieee.org/document/11197553" target="_blank" rel="noopener">DeepOHeat-v1: Efficient Operator Learning for Fast and Trustworthy Thermal Simulation and Optimization in 3D-IC Design</a></h3>
@@ -1232,7 +1273,7 @@ h2 {
             </p>
           </div>
         </li>
-        <li class="pub" id="pub-deepoheat-v2" data-tags="sciml" data-date="2026-08" hidden>
+        <li class="pub" id="pub-deepoheat-v2" data-tags="eda" data-date="2026-08" hidden>
           <div class="pub-venue"><span class="tag review">Under review</span></div>
           <div class="pub-main">
             <h3 class="pub-title"><a href="https://arxiv.org/abs/2608.16080" target="_blank" rel="noopener">DeepOHeat-v2: Self-Improving Operator Learning for Fast and Trustworthy Thermal Optimization in 3D-IC Design</a></h3>
@@ -1300,56 +1341,50 @@ h2 {
          One <li> per entry inside each <ul class="tl">. Copy an entry to add one. -->
     <section id="experience" class="section" aria-labelledby="xp-h">
       <div class="section-head"><h2 id="xp-h">Experience</h2></div>
-      <div class="xp-grid">
-        <div>
-          <h3 class="col-title">Industry and research</h3>
-          <ul class="tl">
-            <li>
-              <p class="tl-date">Jun 2026 – Sep 2026</p>
-              <p class="tl-title">Software Engineer Intern</p>
-              <p class="tl-org">Google Cloud · Sunnyvale, CA</p>
-              <p class="tl-desc">Efficient MoE adapter tuning and multi-tenant serving.</p>
-            </li>
-            <li>
-              <p class="tl-date">Apr 2025 – Sep 2025</p>
-              <p class="tl-title">Visiting Student</p>
-              <p class="tl-org">Argonne National Laboratory · Lemont, IL</p>
-              <p class="tl-desc">Fault-tolerant LLM pre-training.</p>
-            </li>
-            <li>
-              <p class="tl-date">Jun 2022 – Sep 2024 · 3 terms</p>
-              <p class="tl-title">Research Intern</p>
-              <p class="tl-org">Cadence Design Systems · Austin, TX</p>
-              <ul class="tl-sub">
-                <li><span>2024</span><p>Data-driven modeling of real-world data center thermal and CFD simulations.</p></li>
-                <li><span>2023</span><p>Data-driven modeling of large-scale automotive aerodynamic simulations.</p></li>
-                <li><span>2022</span><p>Physics-informed operator learning for 3D-IC thermal simulations.</p></li>
-              </ul>
-            </li>
+      <h3 class="col-title">Industry and research</h3>
+      <ul class="tl">
+        <li>
+          <p class="tl-date">Jun 2026 – Sep 2026</p>
+          <p class="tl-title">Software Engineer Intern</p>
+          <p class="tl-org">Google Cloud AI · Sunnyvale, CA</p>
+          <p class="tl-desc">Efficient MoE adapter tuning and multi-tenant serving.</p>
+        </li>
+        <li>
+          <p class="tl-date">Apr 2025 – Sep 2025</p>
+          <p class="tl-title">Visiting Student</p>
+          <p class="tl-org">Argonne National Laboratory · Lemont, IL</p>
+          <p class="tl-desc">Fault-tolerant LLM pre-training.</p>
+        </li>
+        <li id="xp-cadence">
+          <p class="tl-date">Jun 2022 – Sep 2024 · 3 terms</p>
+          <p class="tl-title">Research Intern</p>
+          <p class="tl-org">Cadence Design Systems · Austin, TX</p>
+          <ul class="tl-sub">
+            <li id="xp-cadence-2024"><span>2024</span><div><p class="tl-sub-title">Data center thermal and CFD</p><p>Simulation-trained AI surrogates for real-world data center thermal and CFD simulations, integrated with Cadence's Reality Digital Twin Platform to predict airflow and server temperatures in near real time.</p></div></li>
+            <li id="xp-cadence-2023"><span>2023</span><div><p class="tl-sub-title">Automotive aerodynamics</p><p>Data-driven models of large-scale automotive aerodynamic simulations.</p></div></li>
+            <li id="xp-cadence-2022"><span>2022</span><div><p class="tl-sub-title">3D-IC thermal</p><p>Physics-informed operator learning for 3D-IC thermal simulation, published as DeepOHeat at DAC 2023.</p><div class="chips"><a class="chip" href="#pub-deepoheat">DeepOHeat <span>DAC'23</span></a></div></div></li>
           </ul>
-        </div>
-        <div>
-          <h3 class="col-title">Education</h3>
-          <ul class="tl">
-            <li>
-              <p class="tl-date">2023 – 2027 (expected)</p>
-              <p class="tl-title">Ph.D. in Computer Science</p>
-              <p class="tl-org">University of California, Santa Barbara</p>
-              <p class="tl-desc">Advisor: <a href="https://web.ece.ucsb.edu/~zhengzhang/" target="_blank" rel="noopener">Prof. Zheng Zhang</a></p>
-            </li>
-            <li>
-              <p class="tl-date">2021 – 2023</p>
-              <p class="tl-title">M.A. in Statistics</p>
-              <p class="tl-org">University of California, Santa Barbara</p>
-            </li>
-            <li>
-              <p class="tl-date">2016 – 2020</p>
-              <p class="tl-title">B.S. in Statistics</p>
-              <p class="tl-org">Nankai University, School of Mathematical Sciences</p>
-            </li>
-          </ul>
-        </div>
-      </div>
+        </li>
+      </ul>
+      <h3 class="col-title edu-title">Education</h3>
+      <ul class="edu">
+        <li>
+          <p class="tl-date">2023 – 2027 (expected)</p>
+          <p class="tl-title">Ph.D. in Computer Science</p>
+          <p class="tl-org">University of California, Santa Barbara</p>
+          <p class="tl-desc">Advisor: <a href="https://web.ece.ucsb.edu/~zhengzhang/" target="_blank" rel="noopener">Prof. Zheng Zhang</a></p>
+        </li>
+        <li>
+          <p class="tl-date">2021 – 2023</p>
+          <p class="tl-title">M.A. in Statistics</p>
+          <p class="tl-org">University of California, Santa Barbara</p>
+        </li>
+        <li>
+          <p class="tl-date">2016 – 2020</p>
+          <p class="tl-title">B.S. in Statistics</p>
+          <p class="tl-org">Nankai University, School of Mathematical Sciences</p>
+        </li>
+      </ul>
     </section>
 
     <!-- ============ TEACHING ============
@@ -1515,11 +1550,13 @@ h2 {
   window.addEventListener("resize", syncNewsFade);
   syncNewsFade();
 
-  /* Publication tabs: Highlights keeps its own order (data-hl); every other tab lists papers newest first (data-date) */
+  /* Publication tabs: Highlights keeps its own order (data-hl). Every other tab: first-author papers first,
+     then the rest; inside each group, published papers newest first (data-date) and papers under review last. */
   var filterBtns = Array.prototype.slice.call(document.querySelectorAll(".filter"));
   var pubList = document.querySelector(".pubs");
   var pubs = Array.prototype.slice.call(document.querySelectorAll(".pub"));
   function tagsOf(p) { return (p.getAttribute("data-tags") || "").split(/\s+/); }
+  function rankOf(p) { return (tagsOf(p).indexOf("first") !== -1 ? 0 : 2) + (p.querySelector(".tag.review") ? 1 : 0); }
   function applyFilter(f) {
     filterBtns.forEach(function (b) {
       var on = b.getAttribute("data-filter") === f;
@@ -1529,13 +1566,14 @@ h2 {
     var shown = pubs.filter(function (p) { return tagsOf(p).indexOf(f) !== -1; });
     shown.sort(function (a, b) {
       if (f === "hl") return (+a.getAttribute("data-hl") || 99) - (+b.getAttribute("data-hl") || 99);
+      if (rankOf(a) !== rankOf(b)) return rankOf(a) - rankOf(b);
       var d = (b.getAttribute("data-date") || "").localeCompare(a.getAttribute("data-date") || "");
       return d || pubs.indexOf(a) - pubs.indexOf(b);
     });
     pubs.forEach(function (p) { p.hidden = true; });
     shown.forEach(function (p) { p.hidden = false; pubList.appendChild(p); });
   }
-  var TAB_ORDER = ["hl", "arch", "opt", "sys", "sciml", "first"];
+  var TAB_ORDER = ["hl", "arch", "opt", "sys", "eda", "sciml", "first"];
   function tabFor(p) {
     var t = tagsOf(p);
     for (var i = 0; i < TAB_ORDER.length; i++) if (t.indexOf(TAB_ORDER[i]) !== -1) return TAB_ORDER[i];
