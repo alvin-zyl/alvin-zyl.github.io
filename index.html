@@ -711,7 +711,8 @@ h2 {
 }
 .tl-title { margin-top: 2px; font-size: 15.5px; line-height: 1.4; font-weight: 600; color: var(--ink); }
 .tl-org { margin-top: 1px; font-size: 14.5px; color: var(--muted); }
-.tl-desc { margin-top: 6px; font-size: 14.5px; line-height: 1.55; }
+.tl-desc { margin-top: 6px; font-size: 14.5px; line-height: 1.55; max-width: 68ch; }
+.tl > li > .chips { margin-top: 8px; }
 .tl-sub { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
 .tl-sub li { display: grid; grid-template-columns: 38px minmax(0, 1fr); gap: 8px; font-size: 14.5px; line-height: 1.55; }
 .tl-sub span { font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); padding-top: 1px; font-variant-numeric: tabular-nums; }
@@ -900,7 +901,7 @@ h2 {
       <a href="#teaching">Teaching</a>
     </nav>
     <div class="topbar-actions">
-      <a class="btn-cv" href="cv.pdf" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-file"/></svg>CV</a>
+      <a class="btn-cv" href="cv.pdf" target="_blank" rel="noopener" data-goatcounter-click="cv"><svg class="i" aria-hidden="true"><use href="#i-file"/></svg>CV</a>
       <button class="icon-btn" id="theme-toggle" type="button" aria-label="Toggle dark mode">
         <span class="i-moon-wrap"><svg class="i" aria-hidden="true"><use href="#i-moon"/></svg></span>
         <span class="i-sun-wrap"><svg class="i" aria-hidden="true"><use href="#i-sun"/></svg></span>
@@ -937,7 +938,7 @@ h2 {
         <li><a href="https://scholar.google.com/citations?user=7hVIDywAAAAJ&amp;hl=en" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-cap"/></svg><span>Google Scholar</span></a></li>
         <li><a href="https://github.com/alvin-zyl" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-code"/></svg><span>GitHub</span></a></li>
         <li><a href="https://www.linkedin.com/in/ziyue-liu-54b660244/" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-id"/></svg><span>LinkedIn</span></a></li>
-        <li><a href="cv.pdf" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-file"/></svg><span>CV (PDF)</span></a></li>
+        <li><a href="cv.pdf" target="_blank" rel="noopener" data-goatcounter-click="cv"><svg class="i" aria-hidden="true"><use href="#i-file"/></svg><span>CV (PDF)</span></a></li>
       </ul>
     </div>
   </aside>
@@ -952,7 +953,7 @@ h2 {
       <div class="prose">
         <p>I am a Ph.D. student in Computer Science at the University of California, Santa Barbara, advised by <a href="https://web.ece.ucsb.edu/~zhengzhang/" target="_blank" rel="noopener">Prof. Zheng Zhang</a>. Before my Ph.D., I received an M.A. in Statistics from UCSB and a B.S. in Statistics from Nankai University.</p>
         <p>My research covers the <strong>training stack end to end</strong>, particularly for pre-training: low-rank model architectures that reduce compute, Muon-style optimizers that train faster, and scalable, fault-tolerant training systems designed for clusters of 100k+ GPUs.</p>
-        <p>I also work on <strong>AI for EDA and data center thermal management</strong>, building ML surrogate models that speed up thermal and CFD simulation, from 3D-IC chips to whole data centers.</p>
+        <p>I also work on <strong>AI for EDA and data center thermal management</strong>, building ML surrogate models that speed up thermal and CFD simulation, from 3D-IC chips to data center digital twins.</p>
         <p>Most recently, I was a Software Engineer Intern at <strong>Google Cloud AI</strong>. Before that, I was a visiting student at <strong>Argonne National Laboratory</strong> and a research intern at <strong>Cadence Design Systems</strong>.</p>
       </div>
       <div class="callout" role="note">
@@ -1353,7 +1354,8 @@ h2 {
           <p class="tl-date">Apr 2025 – Sep 2025</p>
           <p class="tl-title">Visiting Student</p>
           <p class="tl-org">Argonne National Laboratory · Lemont, IL</p>
-          <p class="tl-desc">Fault-tolerant LLM pre-training.</p>
+          <p class="tl-desc">Fault-tolerant LLM pre-training without checkpoint restarts, published as ReCoVer at NeurIPS 2026.</p>
+          <div class="chips"><a class="chip" href="#pub-recover">ReCoVer <span>NeurIPS'26</span></a></div>
         </li>
         <li id="xp-cadence">
           <p class="tl-date">Jun 2022 – Sep 2024 · 3 terms</p>
@@ -1621,5 +1623,6 @@ h2 {
   });
 })();
 </script>
+<script data-goatcounter="https://alvin-zyl.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </body>
 </html>
